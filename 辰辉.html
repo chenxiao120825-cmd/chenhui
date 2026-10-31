@@ -422,7 +422,7 @@
   <p>迎战敌潮，组合武器与契约。</p>
   <button class="btn magnetic" id="extremeBtn">极限远征 · 五境撤离</button>
   <p>空手出发，收集碎片，在限时内穿越五境。</p>
-  <button class="btn magnetic" id="survivalBtn">吊炸天 · 禁武生存</button><p>十项任务或生存二十分钟，四槽被动成长。</p>
+  <button class="btn magnetic" id="survivalBtn">吊炸天 · 禁武生存</button><p>全程禁攻，无碎片。完成十项任务或生存二十分钟。</p>
   <button class="btn magnetic" id="modeBack">返回</button>
 </div>
 <div class="panel" id="difficultySelect"><h2>普通模式 · 选择难度</h2>
@@ -1597,6 +1597,7 @@ function burst(x, y, count, img, speed) {
 }
 // 死亡碎裂：旋转多边形残片
 function shatter(x, y, color, count, size, speed) {
+  if(survival)return;
   if (shards.length > 240) return;
   for (let i = 0; i < count; i++) {
     const a = rand(0, TAU), s = rand(speed * .35, speed);
@@ -2066,6 +2067,7 @@ function addStreak(x, y, vx, vy, life, color, len) {
 }
 // 掉落物
 function dropPickup(x, y, kind, val) {
+  if(survival && kind==='life')return;
   if((survival || expedition) && (kind==="relic" || kind.startsWith("ult")))return;
   pickups.push({ x, y, vx: rand(-60, 60), vy: rand(-60, 60), kind, val: val || 25, t: 0, life: kind === 'relic' ? 16 : kind.startsWith('ult') ? 12 : 8, ph: rand(0, TAU) });
   if (kind === 'life') addFloat(x, y - 16, '生命碎片!', 'rgba(255,150,190,', 15);
@@ -2337,6 +2339,7 @@ function mergePair() {
 
 // ---------- 冲击波 ----------
 function castPulse(R) {
+  if(survival)return;
   sfx.pulse();
   shake = Math.max(shake, 7); slowHold = .18;
   camKick += .01;
@@ -2568,6 +2571,7 @@ function basicAttack() {
 }
 // 刃舞：零耗能。斩中回能 / 弹反弹幕 / 拆解自爆蜂；0.8s 内三连挥出金色大横扫
 function bladeSlash() {
+  if(survival)return;
   bladeCombo = bladeComboT > 0 ? bladeCombo + 1 : 1;
   bladeComboT = .8;
   const fin = bladeCombo >= 3;
@@ -2623,6 +2627,7 @@ function bladeSlash() {
 }
 // 星炮：耗弹药不耗能。精准慢射，对远程/重甲双倍伤害
 function cannonShot() {
+  if(survival)return;
   if (ammo <= 0) { sfx.fizzle(); return; }
   ammo--;
   attackCd = .24 * mods.cdMult;
@@ -2673,6 +2678,7 @@ function syncWeapons() {
 }
 // —— 手势刻印 ——
 function startInscribe() {
+  if(survival)return;
   if (state !== 'PLAY' || choosing) return;
   if (gestureCd > 0) { addFloat(camX + mouse.x, camY + mouse.y - 14, '刻印冷却', 'rgba(150,180,220,', 12); return; }
   inscribing = true; inscribeT = 0;
