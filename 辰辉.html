@@ -209,6 +209,8 @@
   .fragTrack{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
   .fragTrack i{height:6px;background:#384552;border-radius:1px}
   .fragTrack .lit{background:#71ede1}.fragRow.complete .lit{background:#ffd278}
+  #hazardClock{font-weight:700;font-variant-numeric:tabular-nums;color:#bceeff}
+  #hazardClock.warn{color:#ffdc82} #hazardClock.active{color:#ff9c93}
   #expHud.urgent{color:#ffb3a5;border-color:#ff7769}
   body.expedition #buildSlots,body.expedition #recipeChip,body.expedition #gestHint{display:none}
   #extremeResult{position:absolute;top:18%;width:100%;text-align:center;color:#ffd08a;font-size:22px}
@@ -384,7 +386,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
-  <div id="expHud" hidden><div id="expStatus"></div><div id="fragmentBars" hidden aria-label="碎片收集进度"></div></div><div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
+  <div id="expHud" hidden><div id="hazardClock" hidden></div><div id="expStatus"></div><div id="fragmentBars" hidden aria-label="碎片收集进度"></div></div><div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
   <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
@@ -741,11 +743,11 @@ function syncFragmentBars(){
   }).join('');
 }
 const EXP_MAPS=[
-  {name:'震裂矿坑',color:'#ffa975',rule:'红圈蓄亮后地震，绕开矿脉',task:'勘测矿脉',hold:1.5,rows:['..R..R...', '.R..X..R.', '...R..X..', '.X...R...', '...R...R.']},
-  {name:'逆潮航道',color:'#75f1cb',rule:'流带每 6 秒反向，看箭头走',task:'校准浮标',hold:2,rows:['..>...R..', '.R..>...R', '...>..>..', '.>...R..>', '...R..>..']},
-  {name:'相位闸阵',color:'#ffd577',rule:'金色闸墙每 5 秒切换通行状态',task:'破解闸锁',hold:2.5,rows:['..G..|...', '.|..G..|.', '...|..G..', '.G...|..G', '...G..|..']},
+  {name:'震裂矿坑',period:10,active:1,color:'#ffa975',rule:'红圈蓄亮后地震，绕开矿脉',task:'勘测矿脉',hold:1.5,rows:['..R..R...', '.R..X..R.', '...R..X..', '.X...R...', '...R...R.']},
+  {name:'逆潮航道',period:6,color:'#75f1cb',rule:'流带每 6 秒反向，看箭头走',task:'校准浮标',hold:2,rows:['..>...R..', '.R..>...R', '...>..>..', '.>...R..>', '...R..>..']},
+  {name:'相位闸阵',period:5,color:'#ffd577',rule:'金色闸墙每 5 秒切换通行状态',task:'破解闸锁',hold:2.5,rows:['..G..|...', '.|..G..|.', '...|..G..', '.G...|..G', '...G..|..']},
   {name:'镜冰断层',color:'#a4e4ff',rule:'蓝色冰面会滑行，提前松键转向',task:'稳定冰锚',hold:2,rows:['..I..R.I.', '.R..I..R.', '.I...I...', '...R..I.R', '.I...R...']},
-  {name:'日蚀回廊',color:'#d3a4ff',rule:'每 12 秒末段暗蚀，进入紫灯圈避伤',task:'点燃界灯',hold:3,rows:['..L..|...', '.|..L..|.', '...L..L..', '.L..|...L', '...L..|..']}
+  {name:'日蚀回廊',period:20,active:3,color:'#d3a4ff',rule:'进入紫灯圈可避开暗蚀',task:'点燃界灯',hold:3,rows:['..L..|...', '.|..L..|.', '...L..L..', '.L..|...L', '...L..|..']}
 ];
 const expPoint=(u,v)=>({x:INSET+u*(WORLD_W-2*INSET),y:INSET+v*(WORLD_H-2*INSET)});
 function expMap(){return EXP_MAPS[expedition.order[expedition.stage]];}
@@ -803,11 +805,15 @@ function expTick(dt){
   const e=expedition,m=expMap();e.age+=dt;e.remaining-=dt;
   if(e.remaining<=0){score=displayScore=0;lives=0;e.outcome=(e.exit?'撤离超时':'任务超时')+' · 得分清零';gameOver();return true;}
   const mode=e.order[e.stage];
-  if(mode===1) for(const p of terrain)if(p.baseDir)p.dir=p.baseDir*(Math.floor(e.age/6)%2?-1:1);
-  if(mode===2) for(const p of terrain)if(p.gate)p.kind=Math.floor(e.age/5)%2?'screen':'wall';
+  const phase=m.period ? e.age%m.period : 0;
+  const active=!!m.active && phase>=m.period-m.active;
+  const seconds=Math.ceil((m.period||0)-phase-(active?0:(m.active||0)));
+  e.hazardActive=active;e.hazardSeconds=seconds;
+  if(mode===1) for(const p of terrain)if(p.baseDir)p.dir=p.baseDir*(Math.floor(e.age/m.period)%2?-1:1);
+  if(mode===2) for(const p of terrain)if(p.gate)p.kind=Math.floor(e.age/m.period)%2?'screen':'wall';
   const inside=(kind)=>terrain.some(p=>p.kind===kind && hyp(player.x-p.x,player.y-p.y)<p.r);
-  if(e.age>=e.hazardAt && player.invuln<=0 && ((mode===0 && e.age%6>=5 && inside('quake')) || (mode===4 && e.age%12>=9 && !inside('lamp')))){
-    e.hazardAt=mode===4 ? (Math.floor(e.age/12)+1)*12 : e.age+2;damagePlayer(player.x,player.y);if(state!=='PLAY')return true;
+  if(e.age>=e.hazardAt && player.invuln<=0 && ((mode===0 && active && inside('quake')) || (mode===4 && active && !inside('lamp')))){
+    e.hazardAt=(Math.floor(e.age/m.period)+1)*m.period;damagePlayer(player.x,player.y);if(state!=='PLAY')return true;
   }
   const track=e.route[e.exit?4:e.nodes+1],target=expTargetPoint(track);
   if(!e.exit){
@@ -850,9 +856,23 @@ function expTick(dt){
       }else banner(EXP_ITEMS[id]+'碎片 '+e.bag[id]+'/5');
     }
   }
-  const warning=mode===4 && e.age%12>=7?' · 暗蚀将至／进入紫灯圈':mode===0 && e.age%6>=3.5?' · 震区预警':'';
+  const hud=$('hazardClock');
+  let text;
+  if(mode===0)text=(active?'地震结束':'地震触发')+' · '+seconds+' 秒';
+  if(mode===1)text='水流反向 · '+seconds+' 秒';
+  if(mode===2)text=(Math.floor(e.age/m.period)%2?'闸墙关闭':'闸墙开启')+' · '+seconds+' 秒';
+  if(mode===3)text=inside('ice')?'冰面上 · 提前反向减速':'冰面持续生效 · 无周期';
+  if(mode===4){
+    const lamps=terrain.filter(p=>p.kind==='lamp');
+    const nearest=lamps.reduce((a,b)=>hyp(a.x-player.x,a.y-player.y)<hyp(b.x-player.x,b.y-player.y)?a:b);
+    const dir=Math.round(Math.atan2(nearest.y-player.y,nearest.x-player.x)*4/Math.PI);
+    const guide=inside('lamp')?'已在安全圈':'安全圈 '+['→','↘','↓','↙','←','↖','↑','↗'][(dir+8)%8];
+    text=(active?'暗蚀结束':'暗蚀触发')+' · '+seconds+' 秒　'+guide;
+  }
+  hud.hidden=false;hud.className=active?'active':m.period && seconds<=5?'warn':'';
+  if(hud.textContent!==text)hud.textContent=text;
   const clock=e.exit && e.age<120 ? '提前撤离 · '+Math.ceil(120-e.age)+'秒后进入最后40秒' : (e.exit?'最后撤离 ':'任务剩余 ')+Math.ceil(e.remaining)+'秒';
-  const msg=(e.stage+1)+'/5 '+m.name+'　'+clock+'\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+clock+'\n'+m.rule+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
   $('expHud').classList.toggle('urgent',e.remaining<=10);
   if($('expStatus').textContent!==msg)$('expStatus').textContent=msg;
   return false;
@@ -866,6 +886,12 @@ function expMarkers(mini,x0=0,y0=0,sc=1){
     ctx.font=mini?'bold 11px sans-serif':'bold 16px sans-serif';ctx.textAlign='center';ctx.fillText(label,x,mini?y+3:y+5);
   }
   ctx.save();mark(e.route[e.exit?4:e.nodes+1],e.exit?'#ffdb75':'#b6ff9c',e.exit?'门':mini?'★':expMap().task);
+  if(mini && e.order[e.stage]===4){
+    ctx.strokeStyle='#e8b3ff';ctx.lineWidth=1.5;
+    for(const lamp of terrain.filter(p=>p.kind==='lamp')){
+      ctx.beginPath();ctx.arc(x0+lamp.x*sc,y0+lamp.y*sc,Math.max(3,lamp.r*sc),0,TAU);ctx.stroke();
+    }
+  }
   if(e.drop){
     const p=expTargetPoint(e.drop),x=x0+p.x*sc,y=y0+p.y*sc,beat=(Math.sin(e.age*5)+1)/2;
     ctx.strokeStyle='#ffe076';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,mini?6+beat*3:76+beat*5,0,TAU);ctx.stroke();
@@ -934,7 +960,7 @@ function drawTerrain(t) {
       continue;
     }
     if(['ice','lamp','quake'].includes(p.kind)){
-      const color=p.kind==='ice'?'#8edfff':p.kind==='lamp'?'#dbadff':expedition.age%6>=3.5?'#ff615d':'#ec9958';
+      const color=p.kind==='ice'?'#8edfff':p.kind==='lamp'?'#dbadff':(expedition.hazardActive||expedition.hazardSeconds<=5)?'#ff615d':'#ec9958';
       ctx.fillStyle=color+'35';ctx.strokeStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill();ctx.stroke();
       ctx.fillStyle=color;ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText({ice:'冰',lamp:'灯',quake:'震'}[p.kind],p.x,p.y);continue;
     }
@@ -2963,6 +2989,7 @@ function startGame(extreme=false) {
     expedition={order,stage:0,bag:{},nextDrop:rand(15,23),hintAt:0};
   }
   buildTerrain(); document.body.classList.toggle('expedition',!!(expedition||survival));document.body.classList.toggle('pacifist',!!survival);
+  $('hazardClock').hidden=true;
   $('expHud').hidden=!(expedition||survival);$('expHud').classList.remove('urgent');$('expStatus').textContent='';$('extremeResult').hidden=true;
   syncFragmentBars();
   state = 'PLAY';
