@@ -1454,7 +1454,14 @@ let novaPending = false, draftCredits=0, draftWindow=false, rerolls=2, missedSki
 let forge=null;
 function offerForge(dt) {
   if (!forge || forge.done) return;
-  forge.held = hyp(player.x-forge.x,player.y-forge.y)<74 ? Math.min(5,forge.held+dt) : 0;
+  if (hyp(player.x-forge.x,player.y-forge.y)<74) {
+    forge.grace=.5;
+    forge.held=Math.min(5,forge.held+dt);
+  } else {
+    const grace=Math.min(forge.grace || 0,dt);
+    forge.grace=(forge.grace || 0)-grace;
+    forge.held=Math.max(0,forge.held-(dt-grace));
+  }
   if (forge.held<5) return;
   forge.done=true;
   const pool=UPGRADES.filter(u=>cardGroup(u)==='skills' && mods.taken[u.id] && canDraft(u));
@@ -1693,24 +1700,32 @@ function showSlots() {
     $(el).textContent=rule.label+' '+slots.length+'/'+rule.count+'　'+names.join(' · ');
   }
 }
-function openChoice(redraw=false) {
-  if (choosing && !redraw) return;
-  const pool = UPGRADES.filter(canDraft);
-  const picks = pickWeighted(pool, 3);
-  const avail = CONTRACTS.filter(canDraft);
-  if (avail.length && (!picks.length || Math.random() < .5)) {
-    if (picks.length === 3) picks.pop();
-    while (picks.length < 3 && avail.length) picks.push(avail.splice(Math.floor(rand(0, avail.length)), 1)[0]);
+function openChoice(previous=[]) {
+  if (choosing && !previous.length) return;
+  const pool=UPGRADES.filter(canDraft), contracts=CONTRACTS.filter(canDraft);
+  const fresh=pool.filter(u=>!previous.includes(u));
+  const avail=contracts.filter(u=>!previous.includes(u));
+  const picks=pickWeighted(fresh,3);
+  if (avail.length && (picks.length<3 || Math.random()<.5)) {
+    if (picks.length===3) picks.pop();
+    while (picks.length<3 && avail.length) picks.push(avail.splice(Math.floor(rand(0,avail.length)),1)[0]);
   }
+  // 只有未展示的牌不够三张时，才回填上一手的合法选项。
+  const fallback=previous.filter(canDraft);
+  while (picks.length<3 && fallback.length) picks.push(fallback.splice(Math.floor(rand(0,fallback.length)),1)[0]);
   const held=pool.filter(u=>cardGroup(u)==='skills' && mods.taken[u.id]);
   const isHeld=u=>held.includes(u);
-  if (held.length && missedSkills>=2 && !picks.some(isHeld)) picks[picks.length-1]=held[Math.floor(rand(0,held.length))];
+  if (held.length && missedSkills>=2 && !picks.some(isHeld)) {
+    const unseen=held.filter(u=>!previous.includes(u));
+    const candidates=unseen.length ? unseen : held;
+    picks[picks.length-1]=candidates[Math.floor(rand(0,candidates.length))];
+  }
   if (!picks.length) return;
   missedSkills=picks.some(isHeld) ? 0 : missedSkills+1;
   const tools=$('draftTools'); tools.replaceChildren();
   if(draftCredits>0) tools.append('本次选完还有 '+draftCredits+' 次　');
-  const redrawBtn=document.createElement('button'); redrawBtn.className='btn'; redrawBtn.textContent='重抽 · 剩 '+rerolls+' 次'; redrawBtn.disabled=!rerolls;
-  redrawBtn.onclick=()=>{if(rerolls>0){rerolls--;openChoice(true);}};tools.appendChild(redrawBtn);
+  const redrawBtn=document.createElement('button'); redrawBtn.className='btn'; redrawBtn.textContent='重抽 · 剩 '+rerolls+' 次'; redrawBtn.disabled=!rerolls || ![...pool,...contracts].some(u=>!picks.includes(u));
+  redrawBtn.onclick=()=>{if(rerolls>0){rerolls--;openChoice(picks);}};tools.appendChild(redrawBtn);
   choosing = true;
   sfx.chime();
   const box = document.getElementById('cards');
@@ -3203,6 +3218,11 @@ function update(rdt, t) {
                   vx: -mvx * 2 + rand(-30, 30), vy: -mvy * 2 + rand(-30, 30),
                   life: .35, t: 0, size: 8, img: GLOW.cyan });
   mouse.px = mouse.x; mouse.py = mouse.y;
+  if (choosing) {
+    dangerEl.style.opacity = 0;
+    cursorEl.classList.remove('danger'); cursorEl.classList.remove('ready');
+    syncHud(); return;
+  }
   // 击杀顿帧：世界与玩家全部凝固一瞬
   if (hitstop > 0) {
     hitstop -= rdt;
@@ -3214,11 +3234,7 @@ function update(rdt, t) {
   shake = Math.max(0, shake - rdt * 40);
   glitch = Math.max(0, glitch - rdt * 2.4);
   updateAudio();
-  if (choosing) {
-    dangerEl.style.opacity = 0;
-    cursorEl.classList.remove('danger'); cursorEl.classList.remove('ready');
-    syncHud(); return;
-  }
+
 
   // ---- 子弹时间 & 危险度 ----
   let near = 1e9, beamNear = false, dangerNear = 1e9;
