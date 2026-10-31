@@ -371,7 +371,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
-  <div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div></div>
+  <div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
   <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
@@ -525,7 +525,7 @@
       <div class="gCard"><h4><span class="gi gPink">〜</span>潮汐 & 异变</h4>
         <p>潮汐：边缘泛红方向涌入敌潮。异变（随机 10~12s）：<b>引力风暴 / 光尘枯竭×3价 / 猎手狂化 / 黄金回响 / 暗域</b>。</p></div>
       <div class="gCard"><h4><span class="gi">❖</span>强化与契约</h4>
-        <p>分数阈值冻结时间三选一：常规 / <b class="gVio">稀有</b> / <b class="gGold">传说</b>。强化与遗物共用 5 槽，另有 3 个契约槽。选牌时可能被<b class="gOr">契约</b>入侵——大收益绑大代价。</p></div>
+        <p>分数阈值冻结时间三选一：常规 / <b class="gVio">稀有</b> / <b class="gGold">传说</b>。技能和遗物共用 5 槽，契约 3 槽，普通加成 2 槽。重复选卡在原槽强化，技能可强化 5 次、契约 3 次、普通加成 10 次。选牌时可能被<b class="gOr">契约</b>入侵——大收益绑大代价。</p></div>
       <div class="gCard"><h4><span class="gi gGold">⬢</span>掉落物与金色残响</h4>
         <p>能量球 / <b class="gPink">生命碎片</b>(+1命) 会被你的引力吸来。金色残响会逃跑：+120×倍率 +35 能量 +3 连击。</p></div>
       <div class="gCard"><h4><span class="gi">☄</span>连技</h4>
@@ -554,7 +554,7 @@
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></div><div class="hs">E 排斥波（22 能量，冷却 5 秒）；R 应急修复，回复一格生命（45 能量，冷却 12 秒）。两招共享冷却。前后左右推光球（方向键也行），速度恒定。地图宽高各为屏幕的 3.5 倍，镜头跟着你滚，球永远在画面里，右下角是战术地图。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">J</span></div><div class="hs">攻击：自动瞄准最近的敌人，没敌人就按上次朝向打。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">U</span><span class="kbd">I</span><span class="kbd">O</span></div><div class="hs">三种刻印：<b>U</b> 流星斩（朝瞄准方向）· <b>I</b> 引力奇点（身前）· <b>O</b> 天雷连环。都要能量。</div></div>
-        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">空格</span></div><div class="hs">冲刺：朝瞄准方向瞬移，带无敌帧。</div></div>
+        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">空格</span></div><div class="hs">冲刺：朝瞄准方向突进，带无敌帧；遇断墙、晶礁会停下。</div></div>
         <div class="helpRow helpOnly mouseOnly"><div class="hk"><span class="kbd">移动鼠标</span></div><div class="hs">光球跟着指针走，指哪到哪；按住右键时指针轨迹就是符的形状。</div></div>
       </div>
     </div>
@@ -576,7 +576,7 @@
       <div class="gCard">
         <div class="helpRow"><div class="hk"><span class="kbd">1..3</span></div><div class="hs">数字键直接切武器，和滚轮等价。</div></div>
         <div class="helpRow"><div class="hk"><span class="kbd">H</span></div><div class="hs">机制图鉴：引力、能量、子弹时间、敌人图鉴。</div></div>
-        <div class="helpRow"><div class="hk"><span class="kbd">K</span></div><div class="hs">成就回廊：23 个成就与进度。</div></div>
+        <div class="helpRow"><div class="hk"><span class="kbd">K</span></div><div class="hs">成就回廊：31 项成就，可从无阶升至金阶。</div></div>
         <div class="helpRow"><div class="hk"><span class="kbd">ESC</span></div><div class="hs">设置 / 暂停：难度、音效、清空数据。</div></div>
         <div class="helpRow"><div class="hk"><span class="kbd">M</span></div><div class="hs">静音开关。</div></div>
         <div class="helpRow"><div class="hk"><span class="kbd">F1</span></div><div class="hs">随时呼出这一页。</div></div>
@@ -662,6 +662,11 @@ function buildTerrain() {
     [.43,.78,36,true],[.6,.78,78,false],[.21,.79,42,true]
   ]) terrain.push({x:INSET+u*(WORLD_W-2*INSET), y:INSET+v*(WORLD_H-2*INSET), r, reef, kind:reef ? "reef" : "slow"});
   for (const [kind,u,v,w,h,dir] of [
+    ['wall',.10,.19,190,40], ['wall',.17,.23,40,155], ['screen',.22,.13,140,42],
+    ['wall',.83,.20,195,42], ['wall',.88,.29,40,175], ['current',.82,.29,176,70,-1],
+    ['wall',.13,.68,40,180], ['screen',.15,.58,145,42], ['wall',.20,.62,175,42],
+    ['wall',.87,.76,180,42], ['wall',.79,.83,42,180], ['screen',.88,.86,155,40],
+    ['wall',.44,.58,190,40], ['wall',.54,.43,40,178], ['current',.52,.49,176,76,1],
     ['wall',.36,.34,150,38], ['wall',.68,.58,38,160], ['wall',.57,.84,140,38],
     ['screen',.44,.44,36,146], ['screen',.77,.39,156,36], ['screen',.27,.72,36,144],
     ['current',.34,.45,180,70,1], ['current',.63,.29,185,72,-1], ['current',.68,.75,175,68,1]
@@ -1224,7 +1229,7 @@ const player = {
     applyWorldTransform();
     const blink = this.invuln > 0 && Math.floor(t / 90) % 2 === 0;
     if (blink) { ctx.restore(); return; }
-    const blazing = mods.blade && this.speed > BLADE_SPEED;
+    const blazing = mods.blade && this.speed > BLADE_SPEED-20*rankOf("blade");
     const n = this.tail.length;
     for (let i = 0; i < n - 1; i++) {
       const a = this.tail[i], b = this.tail[i + 1], f = 1 - i / n;
@@ -1351,7 +1356,7 @@ function spawnEnemy(kind, sx, sy, eliteKind) {
   if (kind === 'overcore'){ h.bossStage = (wave / 5 - 1) % 3;
     h.bossName = ['巨核', '旋星巨核', '裂矛巨核'][h.bossStage];
     h.r = 30 + 2 * h.bossStage; h.hp = 18 + 6 * h.bossStage + 4 * Math.floor((wave - 1) / 15);
-    h.volleyCount = 0; h.volleyAngle = 0; h.shootT = 2.4; h.spawnT = 5; }
+    h.hitsAtSpawn=achRun.hits; h.volleyCount = 0; h.volleyAngle = 0; h.shootT = 2.4; h.spawnT = 5; }
   if (kind === 'weaver')  { h.r = 10; h.hp = 2; h.wT = 1.2; h.tx = x; h.ty = y; h.ax = undefined; h.ay = undefined; }
   if (kind === 'devourer'){ h.r = 12; h.hp = 2; h.eaten = 0; }
   // 精英词缀：迅捷 / 坚壳 / 爆能
@@ -1456,7 +1461,7 @@ function defaultMods() {
            orbitals: 0, bolt: false, nova: false, ghost: false, storm: false, crystal: false,
            dmgMult: 1, cdMult: 1, energyCap: 100, glass: false,
            ammoBonus: 0, bladeRange: 1, pierceBonus: 0,
-           skills: [], contracts: [], bladePower: 1, cannonPower: 1, reloadTime: .95, tags: {}, setDone: {},
+           skills: [], contracts: [], basics: [], bladePower: 1, cannonPower: 1, reloadTime: .95, tags: {}, setDone: {},
            taken: {} };
 }
 let mods = defaultMods();
@@ -1559,7 +1564,7 @@ function applyRelic() {
   }
   const r = pool[Math.floor(rand(0, pool.length))];
   mods.relics[r.id] = 1;
-  mods.skills.push(r.name);
+  mods.skills.push({id:r.id,name:r.name,rank:0});
   r.fx(mods);
   showSlots();
   shout('遗 物 · ' + r.name);
@@ -1594,16 +1599,73 @@ function pickWeighted(pool, n) {
   }
   return out;
 }
+// 首次获得为基础阶，每次再抽同名卡才计一次强化。
+const BASIC_IDS = new Set(['attract','energy','motes','graze']);
+const SLOT_RULES = {
+  skills:{count:5,max:5,label:'技能'}, contracts:{count:3,max:3,label:'契约'}, basics:{count:2,max:10,label:'普通'}
+};
+function cardGroup(u) {
+  return u.rar === 'x' ? 'contracts' : BASIC_IDS.has(u.id) ? 'basics' : 'skills';
+}
+const RANK_EFFECTS = {
+  attract:['吸引倍率 +0.08',m=>m.attract+=.08], energy:['光尘回能倍率 +0.08',m=>m.energy+=.08],
+  motes:['光尘容量 +2',m=>m.moteCap+=2], graze:['擦弹收益倍率 +0.15',m=>m.graze+=.15],
+  life:['回复一格生命',()=>lives=Math.min(5,lives+1)], crystal:['子弹时间回能每秒 +1'],
+  pulser:['脉冲半径倍率 +0.06',m=>m.pulseR+=.06], cost:['刻印冷却缩短 3%',m=>m.cdMult*=.97],
+  slow:['子弹时间触发范围 +6',m=>m.slowRange+=6], chain:['连击窗口 +0.12 秒',m=>m.comboWin+=.12],
+  orb:['棱晶流派吸引倍率 +0.08',m=>m.attract+=.08], bolt:['静电触发率 +3 个百分点'],
+  storm:['磁暴持续时间 +0.3 秒'], blade:['彗尾触发速度降低 20'], ghost:['分身吸尘回能增加基础值的 10%'],
+  nova:['受击反击的脉冲半径倍率 +0.05'],
+  relay:['脉冲供弹时额外回复 1 能量'], mirror:['反射弹飞行时间 +0.1 秒'], wideSigil:['斩击半宽 +5'],
+  rift:['奇点持续时间 +0.15 秒'], harvest:['标记三敌额外回能 +1'], vent:['每发消弹回能 +0.25'],
+  riposte:['每次弹反额外回复 1 能量'], focus:['远射眩晕延长 0.08 秒'],
+  ammoUp:['装填时间缩短 4%',m=>m.reloadTime*=.96], pierce:['星炮伤害倍率 +0.08',m=>m.cannonPower+=.08],
+  canDmg:['星炮伤害倍率 +0.12',m=>m.cannonPower+=.12], bladeR:['刀锋范围倍率 +0.06',m=>m.bladeRange+=.06],
+  bladeD:['刃舞伤害倍率 +0.12',m=>m.bladePower+=.12], pulseC:['脉冲半径倍率 +0.06',m=>m.pulseR+=.06],
+  cRune:['刻印耗能再减 3 个百分点'], cNeedle:['星炮伤害倍率 +0.12',m=>m.cannonPower+=.12],
+  cOrbit:['装填时间缩短 6%',m=>m.reloadTime*=.94], cSalvo:['装填时间缩短 6%',m=>m.reloadTime*=.94],
+  cDuel:['刃舞范围倍率 +0.08',m=>m.bladeRange+=.08], cTide:['脉冲半径倍率 +0.08',m=>m.pulseR+=.08],
+  cGlass:['全局伤害倍率 +0.12',m=>m.dmgMult+=.12], cGreed:['光尘回能倍率 +0.15',m=>m.energy+=.15],
+  cOver:['刻印冷却缩短 6%',m=>m.cdMult*=.94]
+};
+function rankOf(id) { return Math.max(0,(mods.taken[id] || 0)-1); }
+function canDraft(u) {
+  const group=cardGroup(u), owned=mods.taken[u.id];
+  if (owned) return rankOf(u.id)<SLOT_RULES[group].max && (u.id!=='life' || lives<5);
+  return mods[group].length<SLOT_RULES[group].count && (!u.can || u.can());
+}
+function takeCard(u) {
+  if (!canDraft(u)) return;
+  const slots=mods[cardGroup(u)];
+  if (mods.taken[u.id]) {
+    slots.find(slot=>slot.id===u.id).rank++;
+    mods.taken[u.id]++;
+    const effect=RANK_EFFECTS[u.id][1];
+    if (effect) effect(mods);
+    achStats.cardUps++;
+    if (rankOf(u.id)===SLOT_RULES[cardGroup(u)].max) {
+      const stat={skills:'fullSkill',contracts:'fullContract',basics:'fullBasic'}[cardGroup(u)];
+      achStats[stat]++;
+    }
+  } else {
+    slots.push({id:u.id,name:u.name,rank:0});
+    mods.taken[u.id]=1;
+    u.fx(mods); gainTag(u.id);
+  }
+  showSlots(); checkAch();
+}
 function showSlots() {
-  const row = (names, cap) => Array.from({length:cap}, (_, i) => names[i] || '◇').join(' · ');
-  $('skillSlots').textContent = '强化 ' + mods.skills.length + '/5　' + row(mods.skills, 5);
-  $('contractSlots').textContent = '契约 ' + mods.contracts.length + '/3　' + row(mods.contracts, 3);
+  for (const [group,el] of [['skills','skillSlots'],['contracts','contractSlots'],['basics','basicSlots']]) {
+    const rule=SLOT_RULES[group], slots=mods[group];
+    const names=Array.from({length:rule.count},(_,i)=>slots[i] ? slots[i].name+(slots[i].rank?' +'+slots[i].rank:'') : '◇');
+    $(el).textContent=rule.label+' '+slots.length+'/'+rule.count+'　'+names.join(' · ');
+  }
 }
 function openChoice() {
   if (choosing) return;
-  const pool = mods.skills.length < 5 ? UPGRADES.filter(u => (u.stack || !mods.taken[u.id]) && (!u.can || u.can())) : [];
+  const pool = UPGRADES.filter(canDraft);
   const picks = pickWeighted(pool, 3);
-  const avail = mods.contracts.length < 3 ? CONTRACTS.filter(c => !mods.taken[c.id]) : [];
+  const avail = CONTRACTS.filter(canDraft);
   if (avail.length && (!picks.length || Math.random() < .5)) {
     if (picks.length === 3) picks.pop();
     while (picks.length < 3 && avail.length) picks.push(avail.splice(Math.floor(rand(0, avail.length)), 1)[0]);
@@ -1615,16 +1677,16 @@ function openChoice() {
   box.innerHTML = '';
   for (const u of picks) {
     const b = document.createElement('button');
+    const owned=!!mods.taken[u.id], rule=SLOT_RULES[cardGroup(u)];
+    const detail=owned ? RANK_EFFECTS[u.id][0] : u.desc;
     b.className = 'card magnetic rar-' + u.rar;
-    b.innerHTML = `<span class="rar">${RAR_NAME[u.rar]}</span>` +
+    b.innerHTML = `<span class="rar">${rule.label} · ${owned ? '+'+(rankOf(u.id)+1)+'/'+rule.max : RAR_NAME[u.rar]}</span>` +
                   `<span class="tg">${CARD_TAG[u.id] ? TAG_NAME[CARD_TAG[u.id]] : ''}</span>` +
                   `<div class="ic">${u.ic}</div>` +
-                  `<h3>${u.name}</h3><p>${u.desc.replace('\n','<br>')}</p>`;
+                  `<h3>${u.name}</h3><p>${detail.replace('\n','<br>')}</p>`;
     b.addEventListener('click', () => {
       if (!choosing || !b.isConnected) return;
-      (u.rar === 'x' ? mods.contracts : mods.skills).push(u.name);
-      showSlots();
-      u.fx(mods); mods.taken[u.id] = 1; gainTag(u.id);
+      takeCard(u);
       sfx.pick();
       melodyNote();
       document.getElementById('choose').classList.remove('on');
@@ -1793,6 +1855,7 @@ function castUlt() {
   }
 }
 function damagePlayer(sx, sy) {
+  achRun.hits++;
   lives = Math.max(0, lives - (mods.glass ? 2 : 1)); resetCombo();
   styleV *= .55;                             // 受创重挫评级
   if (sx !== undefined) dmgDirs.push({ ang: Math.atan2(sy - player.y, sx - player.x), t: 0, life: .6 });
@@ -1882,7 +1945,12 @@ function killEnemy(idx, cause, chain) {
   kills++;
   achStats.kills++;
   if (h.elite) achStats.elites++;
-  if (h.kind === 'overcore') achStats.bosses++;
+  if (h.kind === 'overcore') {
+    achStats.bosses++;
+    if (achRun.hits===h.hitsAtSpawn) achStats.cleanBoss++;
+    if (lives===1) achStats.lastHeart++;
+    if (!mods.contracts.length && wave>=10) achStats.barrenBoss++;
+  }
   checkAch();
   const base = h.kind === 'mini' ? 40 : h.kind === 'sniper' ? 200 : h.kind === 'splitter' ? 220
              : h.kind === 'bomber' ? 120 : h.kind === 'warden' ? 260 : h.kind === 'phantom' ? 240
@@ -2029,8 +2097,8 @@ function castPulse(R) {
       bullets.splice(i, 1); cleared++;
     }
   }
-  if (mods.relay && cleared >= 3) ammo = Math.min(ammoMax(), ammo+1);
-  if (mods.vent) energy = Math.min(mods.energyCap, energy + 2 * Math.min(4, cleared));
+  if (mods.relay && cleared >= 3) { ammo = Math.min(ammoMax(), ammo+1); energy=Math.min(mods.energyCap,energy+rankOf("relay")); }
+  if (mods.vent) energy = Math.min(mods.energyCap, energy + (2+.25*rankOf("vent")) * Math.min(4, cleared));
   let chain = 0;
   for (let i = hunters.length - 1; i >= 0; i--) {
     const h = hunters[i];
@@ -2051,7 +2119,7 @@ function castPulse(R) {
   else if (chain > 1) addFloat(player.x, player.y - 40, chain + ' 连碎!', 'rgba(178,107,255,');
   if (chain > 1) shake = 14;
   if (chain > 0) registerSkillHit('pulse');
-  if (mods.storm) storms.push({ x: player.x, y: player.y, r: 150, life: 2.4, t: 0 });
+  if (mods.storm) storms.push({ x: player.x, y: player.y, r: 150, life: 2.4+.3*rankOf("storm"), t: 0 });
 }
 function firePulse() {
   const cost = mods.pulseCost;
@@ -2189,8 +2257,13 @@ function doDash() {
   const ang = aimAng;
   const DIST = 190;
   const ox = player.x, oy = player.y;
-  player.x = clamp(player.x + Math.cos(ang) * DIST, INSET + 12, WORLD_W - INSET - 12);
-  player.y = clamp(player.y + Math.sin(ang) * DIST, INSET + 12, WORLD_H - INSET - 12);
+  const dx=Math.cos(ang), dy=Math.sin(ang);
+  for (let step=1;step<=24;step++) {
+    const x=clamp(ox+dx*DIST*step/24,INSET+12,WORLD_W-INSET-12);
+    const y=clamp(oy+dy*DIST*step/24,INSET+12,WORLD_H-INSET-12);
+    if (terrain.some(p=>(p.reef || p.kind==='wall') && terrainOverlap(p,{x,y,r:player.r}))) break;
+    player.x=x; player.y=y;
+  }
   player.invuln = Math.max(player.invuln, .32);
   dashFx = .32;
   shake = Math.max(shake, 4);
@@ -2256,9 +2329,10 @@ function bladeSlash() {
     const d = hyp(b.x - player.x, b.y - player.y);
     if (d < RANGE + 13 && adiff(Math.atan2(b.y - player.y, b.x - player.x), aimAng) < ARC * .9) {
       const c = Math.cos(aimAng), s = Math.sin(aimAng);
-      playerBolts.push({ x: b.x, y: b.y, vx: c * 780, vy: s * 780, t: 0, life: .8, pierce: mods.mirror ? 2 : 1, hit: [], reflected: true });
+      playerBolts.push({ x: b.x, y: b.y, vx: c * 780, vy: s * 780, t: 0, life: .8+.1*rankOf("mirror"), pierce: mods.mirror ? 2 : 1, hit: [], reflected: true });
       burst(b.x, b.y, 4, GLOW.cyan, 140);
-      if (mods.riposte) ammo = Math.min(ammoMax(), ammo + 1);
+      if (mods.riposte) { ammo = Math.min(ammoMax(), ammo+1); energy=Math.min(mods.energyCap,energy+rankOf("riposte")); }
+      achStats.parries++; checkAch();
       addFloat(b.x, b.y, '弹 反!', 'rgba(140,255,235,', 13);
       bullets.splice(i, 1);
       sfx.glass();
@@ -2383,7 +2457,7 @@ function useUtility(repair) {
 }
 function castGesture(g) {
   if (gestureCd > 0) return;
-  const gm = (1 - .08 * (meta.sigil || 0)) * (mods.runePact ? .75 : 1);    // 刻印亲和：耗能减免
+  const gm = (1 - .08 * (meta.sigil || 0)) * (mods.runePact ? .75-.03*rankOf("cRune") : 1);    // 刻印亲和：耗能减免
   if (g.type === 'line') {
     if (!spendEnergy(Math.round(20 * gm))) return;
     gestureCd = .7 * mods.cdMult;
@@ -2404,7 +2478,7 @@ function castGesture(g) {
     for (const h of hunters) {
       if (!vulnerable(h) || h.doom !== undefined) continue;
       const t2 = clamp((h.x - x1) * ux + (h.y - y1) * uy, 0, segLen);
-      if (hyp(h.x - (x1 + ux * t2), h.y - (y1 + uy * t2)) < (mods.wideSigil ? 90 : 60) + h.r) {
+      if (hyp(h.x - (x1 + ux * t2), h.y - (y1 + uy * t2)) < (mods.wideSigil ? 90+5*rankOf("wideSigil") : 60) + h.r) {
         h.doom = .13 + n * .07;
         h.doomChain = n + 1;
         h.doomAng = Math.atan2(uy, ux);
@@ -2412,7 +2486,7 @@ function castGesture(g) {
         n++;
       }
     }
-    if (mods.harvest && n >= 3) energy = Math.min(mods.energyCap, energy + 8);
+    if (mods.harvest && n >= 3) energy = Math.min(mods.energyCap, energy + 8+rankOf("harvest"));
     if (n > 0) registerSkillHit('line');
     rings.push({ x: (x1 + x2) / 2, y: (y1 + y2) / 2, r: 10, maxR: 200, alpha: .7, speed: 640, color: 'rgba(230,250,255,', warp: true, w: 2.5 });
   } else if (g.type === 'zig') {
@@ -2440,7 +2514,7 @@ function castGesture(g) {
     camKick += .014;
     gridWave(g.x, g.y, 20, 800);
     // 引力奇点：吸敌 + 吸弹幕 + 中心绞杀
-    vortices.push({ x: g.x, y: g.y, r: 240, life: mods.rift ? 3.3 : 2.3, t: 0, tick: 0, rot: rand(0, TAU) });
+    vortices.push({ x: g.x, y: g.y, r: 240, life: mods.rift ? 3.3+.15*rankOf("rift") : 2.3, t: 0, tick: 0, rot: rand(0, TAU) });
     rings.push({ x: g.x, y: g.y, r: 8, maxR: 240, alpha: .8, speed: 500, color: 'rgba(178,107,255,', warp: true, w: 3 });
     let n = 0;
     for (const h of hunters) if (vulnerable(h) && hyp(h.x - g.x, h.y - g.y) < 260) n++;
@@ -2450,7 +2524,7 @@ function castGesture(g) {
 
 // ---------- 静电链爪 ----------
 function tryBolt() {
-  if (!mods.bolt || Math.random() > .25) return;
+  if (!mods.bolt || Math.random() > .25+.03*rankOf('bolt')) return;
   let bi = -1, bd = 320;
   for (let i = 0; i < hunters.length; i++) {
     const h = hunters[i];
@@ -2601,7 +2675,7 @@ function startGame() {
   reviveUsed = false; reviveBlast = 0; mouseInit = false;
   camX = 0; camY = 0;
   dashCd = 0; dashFx = 0; wells = []; wellTimer = 15;
-  achRun.mask = 0;
+  achRun.mask = 0; achRun.hits = 0;
   if (meta.head) choosePending = true;       // 局外：强化起点
   toggleShop(false);
   recipeIdx = 0; comboSeq = []; comboSkill = null; syncRecipeHud();
@@ -2658,6 +2732,9 @@ function gameOver() {
   $('goCrys').textContent = '+' + gain;
   if (typeof demo === 'undefined' || !demo.on) {
     achStats.games++;
+    if (bestRank>=4) achStats.sRuns++;
+    if (bestRank>=6) achStats.sssRuns++;
+    if (achRun.mask===7) achStats.arsenalRuns++;
     achStats.bestScore = Math.max(achStats.bestScore, score);
     achStats.bestCombo = Math.max(achStats.bestCombo, bestCombo);
     achStats.bestWave  = Math.max(achStats.bestWave, wave);
@@ -2742,7 +2819,7 @@ function toggleShop(force) {
 //  成 就 系 统 —— 累计统计驱动 · 解锁即送回响结晶 · 独立存档 ge_ach
 // ================================================================
 const ACH_STATS = { kills:0, elites:0, bosses:0, arts:0, gestures:0, goldens:0, ults:0, revives:0,
-                    games:0, bestScore:0, bestCombo:0, bestWave:0, bestRank:-1, bestTime:0, weaponMask:0 };
+                    cardUps:0, parries:0, cleanBoss:0, lastHeart:0, barrenBoss:0, fullSkill:0, fullBasic:0, fullContract:0, sRuns:0, sssRuns:0, arsenalRuns:0, games:0, bestScore:0, bestCombo:0, bestWave:0, bestRank:-1, bestTime:0, weaponMask:0 };
 const ACHS = [
   { id:'first',    ic:'✦', name:'初 次 回 响', desc:'完成第一次击杀', goal:1, get:s=>s.kills, reward:10 },
   { id:'kill50',   ic:'☄', name:'清 理 者',   desc:'累计击杀 50 个敌人', goal:50, get:s=>s.kills, reward:20 },
@@ -2768,8 +2845,26 @@ const ACHS = [
   { id:'time120',  ic:'⏳', name:'长 存 者',   desc:'单局存活 120 秒', goal:120, get:s=>s.bestTime, reward:50 },
   { id:'games10',  ic:'◌', name:'回 响 常 客', desc:'累计游玩 10 局', goal:10, get:s=>s.games, reward:40 },
 ];
+for (const [id,name,desc,stat,reward] of [
+  ['forge','初次锻造','累计强化卡牌','cardUps',15], ['parry','镜面练习','累计成功弹反弹丸','parries',15],
+  ['skillCap','千锤刀锋','将技能强化至 +5','fullSkill',45], ['pactCap','契约履行','将契约强化至 +3','fullContract',40],
+  ['baseCap','积沙成塔','将普通加成强化至 +10','fullBasic',55],
+  ['cleanBoss','无伤拆核','从首领登场至击败未受伤','cleanBoss',80],
+  ['lastHeart','一线生机','仅剩一格生命时击败首领','lastHeart',90],
+  ['barrenBoss','白手逆潮','不持有契约，在第 10 波或以后击败首领','barrenBoss',100]
+]) ACHS.push({id,name,desc,ic:'◇',goal:1,get:s=>s[stat],reward});
+const MEDALS=['无','铁','铜','银','金'];
+// 有上限的单局指标在铁阶后按达标局数晋级。
+const REPEAT_STATS={rankS:'sRuns',rankSSS:'sssRuns',weapon3:'arsenalRuns'};
+function medalTarget(a,tier) {
+  if (tier>1 && REPEAT_STATS[a.id]) return [0,1,3,8,20][tier];
+  return a.goal*[0,1,2,4,8][tier];
+}
+function medalProgress(a,tier) {
+  return tier>1 && REPEAT_STATS[a.id] ? achStats[REPEAT_STATS[a.id]] : a.get(achStats);
+}
 let achStats = Object.assign({}, ACH_STATS), achUnlocked = {}, achOpen = false;
-const achRun = { mask: 0 };
+const achRun = { mask: 0, hits:0 };
 function loadAch() {
   try {
     const d = JSON.parse(localStorage.getItem('ge_ach') || '{}') || {};
@@ -2799,12 +2894,12 @@ function checkAch() {
   if (typeof demo !== 'undefined' && demo.on) return;   // 演示不写玩家存档
   let changed = false;
   for (const a of ACHS) {
-    if (achUnlocked[a.id]) continue;
-    if (a.get(achStats) >= a.goal) {
-      achUnlocked[a.id] = 1;
-      crystals += a.reward;
-      achToast(a);
-      changed = true;
+    let tier=Number(achUnlocked[a.id]) || 0;
+    while (tier<4 && medalProgress(a,tier+1)>=medalTarget(a,tier+1)) {
+      achUnlocked[a.id]=++tier;
+      crystals+=a.reward;
+      achToast({...a,name:a.name+' · '+MEDALS[tier]});
+      changed=true;
     }
   }
   if (changed) {
@@ -2817,16 +2912,17 @@ function renderAch() {
   if (!g) return;
   g.innerHTML = '';
   for (const a of ACHS) {
-    const done = !!achUnlocked[a.id];
-    const cur = Math.min(a.goal, Math.max(0, a.get(achStats)));
-    const p = clamp(cur / a.goal, 0, 1);
+    const tier=Number(achUnlocked[a.id]) || 0, done=tier===4;
+    const next=Math.min(4,tier+1), target=medalTarget(a,next);
+    const cur=Math.min(target,Math.max(0,medalProgress(a,next)));
+    const p=clamp(cur/target,0,1);
     const d = document.createElement('div');
-    d.className = 'gCard aCard ' + (done ? 'done' : 'locked');
-    d.innerHTML = `<span class="aR">${done ? '已 点 亮' : '✦ ' + a.reward}</span>` +
+    d.className = 'gCard aCard ' + (tier ? 'done' : 'locked');
+    d.innerHTML = `<span class="aR">${MEDALS[tier]+'阶'+(done?'':' → '+MEDALS[next]+'阶')}</span>` +
       `<h4><span class="gi">${a.ic}</span>${a.name}</h4>` +
-      `<p>${a.desc}</p>` +
+      `<p>${a.desc}${tier && REPEAT_STATS[a.id]?' · 统计达标局数':''}</p>` +
       `<div class="aBar"><i style="width:${(p * 100).toFixed(0)}%"></i></div>` +
-      `<div class="aNum">${done ? 'MAX' : fmtNum(cur) + ' / ' + fmtNum(a.goal)}</div>`;
+      `<div class="aNum">${done ? 'MAX' : fmtNum(cur) + ' / ' + fmtNum(target)}</div>`;
     g.appendChild(d);
   }
   $('achBal').textContent = `✦ ${crystals} · ${achCount()} / ${ACHS.length} 已点亮`;
@@ -2950,7 +3046,7 @@ $('wipeBtn').addEventListener('click', () => {
     localStorage.removeItem('ge_ach');
   } catch (e) {}
   crystals = 0; meta = {}; best = 0; diffKey = 'normal';
-  achStats = Object.assign({}, ACH_STATS); achUnlocked = {}; achRun.mask = 0;
+  achStats = Object.assign({}, ACH_STATS); achUnlocked = {}; achRun.mask = 0; achRun.hits = 0;
   if (achOpen) renderAch();
   bestEl.textContent = 0;
   syncSettingsUi();
@@ -3102,7 +3198,7 @@ function update(rdt, t) {
 
   // 时间晶格：慢速中回能
   if (mods.crystal && inSlow && state === 'PLAY')
-    energy = Math.min(100, energy + 6 * rdt);
+    energy = Math.min(100, energy + (6+rankOf('crystal')) * rdt);
   if (energy > mods.energyCap) energy = mods.energyCap;   // 契约：能量上限
 
   // 危险红晕 + 残血心跳 + 光标状态
@@ -3199,7 +3295,7 @@ function update(rdt, t) {
       bestCombo = Math.max(bestCombo, combo);
       const pts = Math.round(6 * multCurrent() * (m.hue === 'violet' ? 3 : 1) * (fever ? 2 : 1));
       score += pts;
-      energy = Math.min(100, energy + (m.hue === 'violet' ? 8 : 3.5) * mods.energy);
+      energy = Math.min(100, energy + (m.hue === 'violet' ? 8 : 3.5) * mods.energy * (1+.1*rankOf('ghost')));
       addFloat(m.x, m.y - 8, '+' + pts, 'rgba(150,220,255,');
     }
   }
@@ -3756,7 +3852,7 @@ function update(rdt, t) {
     }
 
     // 彗尾利刃
-    if (mods.blade && player.speed > BLADE_SPEED && state === 'PLAY' && vulnerable(h)) {
+    if (mods.blade && player.speed > BLADE_SPEED-20*rankOf("blade") && state === 'PLAY' && vulnerable(h)) {
       let cut = false;
       for (let k = 5; k < player.tail.length; k += 2) {
         const nd = player.tail[k];
@@ -3833,7 +3929,7 @@ function update(rdt, t) {
   // ---- 湮灭回声（免费反震） ----
   if (novaPending) {
     novaPending = false;
-    castPulse(pulseRadius() * 1.3);
+    castPulse(pulseRadius() * (1.3+.05*rankOf('nova')));
   }
   if (reviveBlast > 0) {                     // 复燃：湮灭波（延迟到安全时点释放）
     castPulse(reviveBlast);
@@ -3903,7 +3999,7 @@ function update(rdt, t) {
         const heavy = h.kind === 'sniper' || h.kind === 'warden' || h.kind === 'phantom' || h.kind === 'overcore';
         const far = hyp(h.x - player.x, h.y - player.y) > 300;
         const killed = damageEnemy(j, 'bolt', 1, (heavy ? 2 : 1), b.reflected ? 1 : mods.cannonPower);
-        if (mods.focus && far && !b.reflected && !killed && h.kind !== 'overcore') h.stun = Math.max(h.stun, .5);
+        if (mods.focus && far && !b.reflected && !killed && h.kind !== 'overcore') h.stun = Math.max(h.stun, .5+.08*rankOf("focus"));
         if (killed && far && !b.reflected) {           // 狙杀奖励
           score += 40;
           energy = Math.min(100, energy + 5);
