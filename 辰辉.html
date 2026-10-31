@@ -203,6 +203,7 @@
     width:min(54vw,400px);text-align:center;color:#ffe4ee;font-weight:700;
     text-shadow:0 1px 4px #000;pointer-events:none}
   #bossHealth progress{display:block;width:100%;height:10px;margin-top:4px;accent-color:#ff578e}
+  #bossHint{display:block;margin-top:4px;font-size:13px;color:#fff0d5}
   body.cine #bossHealth{top:max(112px,calc(11vh + 40px))}
 
   /* ---- 设置面板 ---- */
@@ -368,7 +369,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
-  <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress></div>
+  <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
   <div class="chip" id="bestChip"><span class="lbl">BEST 最佳</span>
@@ -1588,6 +1589,7 @@ function syncBossHealth() {
   const bar = $('bossHealthBar');
   if (panel.hidden || bar.value !== boss.hp || bar.max !== boss.maxHp) {
     $('bossHealthText').textContent = boss.bossName + ' · ' + boss.hp + ' / ' + boss.maxHp;
+    $('bossHint').textContent = ['迷你体聚拢时，用脉冲清场', '紫盾亮起，用刃舞破盾或等盾消退', '脚下出现橙圈，立即跑出外圈'][boss.bossStage];
     bar.max = boss.maxHp;
     bar.value = boss.hp;
     panel.hidden = false;
