@@ -198,6 +198,8 @@
     font-size:26px;font-weight:700;letter-spacing:.7em;text-indent:.7em;color:#ffd7e6;
     text-shadow:0 0 30px rgba(255,61,127,1),0 0 80px rgba(255,61,127,.5);
     opacity:0;transition:opacity .6s;pointer-events:none}
+  #buildSlots{position:absolute;top:116px;left:clamp(6px,2vw,32px);max-width:min(26vw,230px);font:12px/1.5 sans-serif;background:#090e1acc;border-radius:5px;padding:4px 7px;color:#c4f8ff}
+  #contractSlots{color:#ffd698}
   #bossName.on{opacity:1}
   #bossHealth{position:absolute;top:max(112px,9vh);left:50%;transform:translateX(-50%);
     width:min(54vw,400px);text-align:center;color:#ffe4ee;font-weight:700;
@@ -369,6 +371,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
+  <div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div></div>
   <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
@@ -504,13 +507,13 @@
       <div class="gCard"><h4><span class="gi gVio">◌</span>相位幽灵 · 2血</h4>
         <p>追击→隐身→<b>瞬移到你身边</b>（紫圈预警 0.55s）→现身。隐身时免疫一切。</p></div>
       <div class="gCard"><h4><span class="gi gPink">◉</span>阶段首领 · 巨核</h4>
-        <p>每 5 波出现一位，三种首领循环登场。第 5 波巨核（8 血）受击分裂出迷你体，先清追兵再穿过环形弹隙；第 10 波旋星巨核（10 血）周期展开紫色星盾，用刃舞破盾或等 2.4 秒再攻击；第 15 波裂矛巨核（12 血）锁定脚下位置，1.2 秒后轰炸，离开橙色外圈即可躲开。半血后暴走。击杀必掉<b>强化+生命碎片</b>。</p></div>
+        <p>每 5 波出现一位，三种首领循环登场。第 5 波巨核（首轮 18 血）受击分裂出迷你体，先清追兵再穿过环形弹隙；第 10 波旋星巨核（首轮 24 血）周期展开紫色星盾，用刃舞破盾或等 2.4 秒再攻击；第 15 波裂矛巨核（首轮 30 血）锁定脚下位置，1.2 秒后轰炸，离开橙色外圈即可躲开。半血后巨核召唤迅捷追兵，旋星在盾内发射八路旋弹，裂矛同时标记横排三处落点。击杀必掉<b>强化+生命碎片</b>。</p></div>
       <div class="gCard"><h4><span class="gi gVio">✕</span>织网者 · 2血</h4>
         <p>在场上游走，身后拉出<b class="gPink">激光丝网</b>（存续 4s），触网即伤。逼你改变走位习惯——或用星炮远程点名。</p></div>
       <div class="gCard"><h4><span class="gi gOr">◍</span>吞尘者 · 2血</h4>
         <p>不追你，专吃<b>光尘</b>：每吃一颗变大变快，吞满 6 颗<b class="gOr">狂暴</b>扑人。击杀返还一半吃掉的光尘。保护你的经济！</p></div>
       <div class="gCard"><h4><span class="gi gGold">✧</span>精英词缀</h4>
-        <p>虚线光环：<b class="gGold">迅捷</b>(金) / <b>坚壳</b>(青,+2血) / <b class="gOr">爆能</b>(橙,死亡爆炸)。分数 ×2，必掉能量球。</p></div>
+        <p>绿色光环的织愈者每 4 秒治疗附近受伤的小怪。其他虚线光环：<b class="gGold">迅捷</b>(金) / <b>坚壳</b>(青,+2血) / <b class="gOr">爆能</b>(橙,死亡爆炸)。分数 ×2，必掉能量球。</p></div>
       <div class="gCard"><h4><span class="gi gGold">⧉</span>谐振精英对 · 融合</h4>
         <p>两侧同生的同类精英被<b>引力</b>缓缓拉向彼此（金色系带越亮越近）。相遇则<b class="gGold">融合</b>：更大更强、分数 ×3、获得专属能力。杀掉一只即可阻止。</p></div>
     </div>
@@ -520,7 +523,7 @@
       <div class="gCard"><h4><span class="gi gPink">〜</span>潮汐 & 异变</h4>
         <p>潮汐：边缘泛红方向涌入敌潮。异变（随机 10~12s）：<b>引力风暴 / 光尘枯竭×3价 / 猎手狂化 / 黄金回响 / 暗域</b>。</p></div>
       <div class="gCard"><h4><span class="gi">❖</span>强化与契约</h4>
-        <p>分数阈值冻结时间三选一：常规 / <b class="gVio">稀有</b> / <b class="gGold">传说</b>。18% 概率被<b class="gOr">契约</b>入侵——大收益绑大代价。</p></div>
+        <p>分数阈值冻结时间三选一：常规 / <b class="gVio">稀有</b> / <b class="gGold">传说</b>。强化与遗物共用 5 槽，另有 3 个契约槽。选牌时可能被<b class="gOr">契约</b>入侵——大收益绑大代价。</p></div>
       <div class="gCard"><h4><span class="gi gGold">⬢</span>掉落物与金色残响</h4>
         <p>能量球 / <b class="gPink">生命碎片</b>(+1命) 会被你的引力吸来。金色残响会逃跑：+120×倍率 +35 能量 +3 连击。</p></div>
       <div class="gCard"><h4><span class="gi">☄</span>连技</h4>
@@ -1288,7 +1291,7 @@ function pickKind() {
   if (elapsed > 18 && r < .72) return 'sniper';
   return 'chaser';
 }
-function spawnEnemy(kind, sx, sy) {
+function spawnEnemy(kind, sx, sy, eliteKind) {
   let x = sx, y = sy;
   if (x === undefined) {
     do {
@@ -1313,14 +1316,15 @@ function spawnEnemy(kind, sx, sy) {
   if (kind === 'phantom') { h.r = 10; h.hp = 2; h.pstate = 'in'; h.cyc = 2.2; h.gx = x; h.gy = y; }
   if (kind === 'overcore'){ h.bossStage = (wave / 5 - 1) % 3;
     h.bossName = ['巨核', '旋星巨核', '裂矛巨核'][h.bossStage];
-    h.r = 30 + 2 * h.bossStage; h.hp = 8 + 2 * h.bossStage;
+    h.r = 30 + 2 * h.bossStage; h.hp = 18 + 6 * h.bossStage + 4 * Math.floor((wave - 1) / 15);
     h.volleyAngle = 0; h.shootT = 2.4; h.spawnT = 5; }
   if (kind === 'weaver')  { h.r = 10; h.hp = 2; h.wT = 1.2; h.tx = x; h.ty = y; h.ax = undefined; h.ay = undefined; }
   if (kind === 'devourer'){ h.r = 12; h.hp = 2; h.eaten = 0; }
   // 精英词缀：迅捷 / 坚壳 / 爆能
   h.spd = 1;
-  if (state === 'PLAY' && elapsed > 25 && kind !== 'mini' && kind !== 'overcore' && Math.random() < .15) {
-    h.elite = ['swift', 'tank', 'volatile'][Math.floor(rand(0, 3))];
+  if (eliteKind || (state === 'PLAY' && elapsed > 25 && kind !== 'mini' && kind !== 'overcore' && Math.random() < .15)) {
+    h.elite = eliteKind || ['swift', 'tank', 'volatile'][Math.floor(rand(0, 3))];
+    if (h.elite === 'medic') { h.healT = 4; h.hp += 2; }
     h.r *= 1.22;
     h.hp += h.elite === 'tank' ? 2 : 1;
     if (h.elite === 'swift') h.spd = 1.38;
@@ -1416,7 +1420,7 @@ function defaultMods() {
            orbitals: 0, bolt: false, nova: false, ghost: false, storm: false, crystal: false,
            dmgMult: 1, cdMult: 1, energyCap: 100, glass: false,
            ammoBonus: 0, bladeRange: 1, pierceBonus: 0,
-           tags: {}, setDone: {},
+           skills: [], contracts: [], bladePower: 1, cannonPower: 1, reloadTime: .95, tags: {}, setDone: {},
            taken: {} };
 }
 let mods = defaultMods();
@@ -1445,17 +1449,22 @@ const UPGRADES = [
 ];
 // —— 构筑向新卡：三条武器主线各自成流派 ——
 UPGRADES.push(
+  { id:'rift', rar:'r', ic:'◌', name:'长昼奇点', desc:'引力奇点持续时间从 2.3 秒延至 3.3 秒，方便聚怪后接流星斩', fx:m=>m.rift=true },
+  { id:'harvest', rar:'r', ic:'✶', name:'断星汲能', desc:'流星斩一次标记至少三个敌人时，返还 8 能量', fx:m=>m.harvest=true },
+  { id:'vent', rar:'r', ic:'↯', name:'消弹回路', desc:'脉冲每消去一枚弹丸回复 2 能量，每次最多 8', fx:m=>m.vent=true },
+  { id:'riposte', rar:'r', ic:'☽', name:'反击弹仓', desc:'刃舞成功弹反时为星炮装填一发', fx:m=>m.riposte=true },
+  { id:'focus', rar:'r', ic:'✧', name:'定点阻击', desc:'星炮命中 300 距离外的目标时额外眩晕 0.5 秒，首领除外', fx:m=>m.focus=true },
   { id:'ammoUp',  rar:'r', ic:'✛', name:'扩容弹仓', desc:'星炮弹匣 +2', stack:true, can:()=>mods.ammoBonus<4, fx:m=>m.ammoBonus+=2 },
   { id:'pierce',  rar:'l', ic:'➤', name:'贯穿弹芯', desc:'星炮穿透 +1', stack:true, can:()=>mods.pierceBonus<3, fx:m=>m.pierceBonus++ },
-  { id:'canDmg',  rar:'r', ic:'⊹', name:'超载装药', desc:'星炮伤害 +35%', stack:true, fx:m=>m.dmgMult*=1.35 },
+  { id:'canDmg',  rar:'r', ic:'⊹', name:'超载装药', desc:'星炮伤害 +35%', stack:true, fx:m=>m.cannonPower+=.35 },
   { id:'bladeR',  rar:'r', ic:'☾', name:'延展刀锋', desc:'刃舞范围 +18%', stack:true, can:()=>mods.bladeRange<1.6, fx:m=>m.bladeRange+=.18 },
-  { id:'bladeD',  rar:'l', ic:'⚔', name:'裂空斩',  desc:'刃舞伤害 +40%', stack:true, fx:m=>m.dmgMult*=1.4 },
+  { id:'bladeD',  rar:'l', ic:'⚔', name:'裂空斩',  desc:'刃舞伤害 +40%', stack:true, fx:m=>m.bladePower+=.4 },
   { id:'pulseC',  rar:'l', ic:'⌾', name:'回声共振', desc:'冲击波半径 +20%', stack:false, fx:m=>{m.pulseR*=1.2;} },
 );
 
 // —— 构筑标签：同路线攒到 3 / 5 张，解锁套装被动 ——
 const CARD_TAG = {
-  attract:'grav', motes:'grav', orb:'grav', ghost:'grav', crystal:'grav',
+  rift:'grav', harvest:'core', vent:'pulse', riposte:'blade', focus:'cannon', attract:'grav', motes:'grav', orb:'grav', ghost:'grav', crystal:'grav',
   energy:'core', graze:'core', slow:'core', chain:'core', nova:'core', life:'core',
   pulser:'pulse', cost:'pulse', storm:'pulse', bolt:'pulse', pulseC:'pulse',
   blade:'blade', bladeR:'blade', bladeD:'blade',
@@ -1466,8 +1475,8 @@ const SETS = {
   grav:   { name:'引力场', th:[3,5], 3:m=>{ m.attract*=1.25; }, 5:m=>{ m.energy*=1.35; } },
   core:   { name:'核心炉', th:[3,5], 3:m=>{ m.cdMult*=.9; },    5:m=>{ m.nova=true; } },
   pulse:  { name:'脉冲阵', th:[3,5], 3:m=>{ m.pulseR*=1.15; },  5:m=>{ m.pulseCost=Math.max(12, m.pulseCost-12); } },
-  blade:  { name:'刃舞流', th:[3,5], 3:m=>{ m.bladeRange+=.15; }, 5:m=>{ m.dmgMult*=1.5; } },
-  cannon: { name:'星炮台', th:[3,5], 3:m=>{ m.ammoBonus+=2; },  5:m=>{ m.dmgMult*=1.35; m.pierceBonus+=1; } },
+  blade:  { name:'刃舞流', th:[3,5], 3:m=>{ m.bladeRange+=.15; }, 5:m=>{ m.bladePower+=.35; } },
+  cannon: { name:'星炮台', th:[3,5], 3:m=>{ m.ammoBonus+=2; },  5:m=>{ m.cannonPower+=.25; m.pierceBonus+=1; } },
 };
 function gainTag(id) {
   const tag = CARD_TAG[id];
@@ -1504,21 +1513,26 @@ const RELICS = [
 function applyRelic() {
   mods.relics = mods.relics || {};
   const pool = RELICS.filter(r => !mods.relics[r.id]);
-  if (!pool.length) {
+  if (mods.skills.length >= 5 || !pool.length) {
     score += 250;
     addFloat(player.x, player.y - 22, '残 响 +250', 'rgba(255,220,120,', 15);
     return;
   }
   const r = pool[Math.floor(rand(0, pool.length))];
   mods.relics[r.id] = 1;
+  mods.skills.push(r.name);
   r.fx(mods);
+  showSlots();
   shout('遗 物 · ' + r.name);
   addFloat(player.x, player.y - 34, r.name, 'rgba(255,225,150,', 17);
   sfx.unlock();
 }
 
 const CONTRACTS = [
-  { id:'cGlass', rar:'x', ic:'♆', name:'玻璃契约', desc:'全部伤害 ×2\n但每次受击损失 2 生命', fx:m=>{ m.dmgMult*=2; m.glass=true; } },
+  { id:'cSalvo', rar:'x', ic:'✛', name:'急射契约', desc:'星炮装填时间缩短 37%，脉冲耗能 +8', fx:m=>{m.reloadTime*=.63;m.pulseCost+=8;} },
+  { id:'cDuel', rar:'x', ic:'☾', name:'决斗契约', desc:'刃舞范围 +35%，光尘吸引半径减少 25%', fx:m=>{m.bladeRange+=.35;m.attract*=.75;} },
+  { id:'cTide', rar:'x', ic:'◎', name:'潮汐契约', desc:'脉冲半径 +35%，星炮装填时间增加 40%', fx:m=>{m.pulseR*=1.35;m.reloadTime*=1.4;} },
+  { id:'cGlass', rar:'x', ic:'♆', name:'玻璃契约', desc:'全部伤害 ×1.5\n但每次受击损失 2 生命', fx:m=>{ m.dmgMult*=1.5; m.glass=true; } },
   { id:'cGreed', rar:'x', ic:'♅', name:'暴食契约', desc:'光尘能量 ×2\n但光尘数量大幅减少', fx:m=>{ m.energy*=2; m.moteCap-=24; } },
   { id:'cOver',  rar:'x', ic:'♄', name:'超频契约', desc:'全部冷却减半\n但能量上限降至 70', fx:m=>{ m.cdMult=.5; m.energyCap=70; } },
 ];
@@ -1538,16 +1552,23 @@ function pickWeighted(pool, n) {
   }
   return out;
 }
+function showSlots() {
+  const row = (names, cap) => Array.from({length:cap}, (_, i) => names[i] || '◇').join(' · ');
+  $('skillSlots').textContent = '强化 ' + mods.skills.length + '/5　' + row(mods.skills, 5);
+  $('contractSlots').textContent = '契约 ' + mods.contracts.length + '/3　' + row(mods.contracts, 3);
+}
 function openChoice() {
+  if (choosing) return;
+  const pool = mods.skills.length < 5 ? UPGRADES.filter(u => (u.stack || !mods.taken[u.id]) && (!u.can || u.can())) : [];
+  const picks = pickWeighted(pool, 3);
+  const avail = mods.contracts.length < 3 ? CONTRACTS.filter(c => !mods.taken[c.id]) : [];
+  if (avail.length && (!picks.length || Math.random() < .5)) {
+    if (picks.length === 3) picks.pop();
+    while (picks.length < 3 && avail.length) picks.push(avail.splice(Math.floor(rand(0, avail.length)), 1)[0]);
+  }
+  if (!picks.length) return;
   choosing = true;
   sfx.chime();
-  const pool = UPGRADES.filter(u => (u.stack || !mods.taken[u.id]) && (!u.can || u.can()));
-  const picks = pickWeighted(pool, 3);
-  // 契约卡：18% 概率入侵一个卡位（双刃剑）
-  const avail = CONTRACTS.filter(c => !mods.taken[c.id]);
-  for (let i = 0; i < picks.length; i++)
-    if (avail.length && Math.random() < .18)
-      picks[i] = avail.splice(Math.floor(rand(0, avail.length)), 1)[0];
   const box = document.getElementById('cards');
   box.innerHTML = '';
   for (const u of picks) {
@@ -1558,6 +1579,9 @@ function openChoice() {
                   `<div class="ic">${u.ic}</div>` +
                   `<h3>${u.name}</h3><p>${u.desc.replace('\n','<br>')}</p>`;
     b.addEventListener('click', () => {
+      if (!choosing || !b.isConnected) return;
+      (u.rar === 'x' ? mods.contracts : mods.skills).push(u.name);
+      showSlots();
       u.fx(mods); mods.taken[u.id] = 1; gainTag(u.id);
       sfx.pick();
       melodyNote();
@@ -1567,6 +1591,17 @@ function openChoice() {
       rings.push({ x: player.x, y: player.y, r: 6, maxR: 150, alpha: .8, speed: 420, color: 'rgba(102,247,255,', warp: true, w: 2.5 });
     });
     box.appendChild(b);
+  }
+  if (picks.every(u => u.rar === 'x')) {
+    const skip = document.createElement('button');
+    skip.className = 'btn';
+    skip.textContent = '跳过契约';
+    skip.addEventListener('click', () => {
+      document.getElementById('choose').classList.remove('on');
+      choosing = false;
+      player.invuln = Math.max(player.invuln, .9);
+    });
+    box.appendChild(skip);
   }
   document.getElementById('choose').classList.add('on');
 }
@@ -1746,7 +1781,7 @@ function damagePlayer(sx, sy) {
 const vulnerable = h => h.kind !== 'phantom' || h.pstate === 'in' || h.pstate === 'fadeout';
 const tangible   = h => h.kind !== 'phantom' || h.pstate === 'in';
 // hp 扣减；击杀返回 true
-function damageEnemy(idx, cause, chain, dmg) {
+function damageEnemy(idx, cause, chain, dmg, shotPower = 1) {
   const h = hunters[idx];
   if (h.shieldT > 0) {
     if (cause !== 'blade') return false;
@@ -1754,7 +1789,9 @@ function damageEnemy(idx, cause, chain, dmg) {
     sfx.glass();
     addFloat(h.x, h.y - h.r, '星盾破碎', 'rgba(205,190,255,', 15);
   }
-  h.hp -= Math.round((dmg || 1) * mods.dmgMult);
+  const weaponPower = cause === 'blade' ? mods.bladePower : shotPower;
+  const damage = Math.round((dmg || 1) * Math.min(2.25, weaponPower * mods.dmgMult));
+  h.hp -= h.kind === 'overcore' ? Math.min(4, damage) : damage;
   // 形变反馈：爆炸→橡皮泥压扁回弹；星炮→咬出持久缺口
   h.defAng = Math.atan2(h.y - player.y, h.x - player.x);
   if (cause === 'wave') h.def = Math.max(h.def, h.kind === 'overcore' ? .25 : .65);
@@ -1928,13 +1965,15 @@ function castPulse(R) {
   }
   for (let wi = webs.length - 1; wi >= 0; wi--)
     if (segDist(player.x, player.y, webs[wi]) < R) burnWeb(wi);
+  let cleared = 0;
   for (let i = bullets.length - 1; i >= 0; i--) {          // 冲击波清弹幕
     const b = bullets[i];
     if (hyp(b.x - player.x, b.y - player.y) < R + b.r) {
       burst(b.x, b.y, 3, GLOW.orange, 120);
-      bullets.splice(i, 1);
+      bullets.splice(i, 1); cleared++;
     }
   }
+  if (mods.vent) energy = Math.min(mods.energyCap, energy + 2 * Math.min(4, cleared));
   let chain = 0;
   for (let i = hunters.length - 1; i >= 0; i--) {
     const h = hunters[i];
@@ -2162,6 +2201,7 @@ function bladeSlash() {
       const c = Math.cos(aimAng), s = Math.sin(aimAng);
       playerBolts.push({ x: b.x, y: b.y, vx: c * 780, vy: s * 780, t: 0, life: .8, pierce: 1, hit: [], reflected: true });
       burst(b.x, b.y, 4, GLOW.cyan, 140);
+      if (mods.riposte) ammo = Math.min(ammoMax(), ammo + 1);
       addFloat(b.x, b.y, '弹 反!', 'rgba(140,255,235,', 13);
       bullets.splice(i, 1);
       sfx.glass();
@@ -2315,6 +2355,7 @@ function castGesture(g) {
         n++;
       }
     }
+    if (mods.harvest && n >= 3) energy = Math.min(mods.energyCap, energy + 8);
     if (n > 0) registerSkillHit('line');
     rings.push({ x: (x1 + x2) / 2, y: (y1 + y2) / 2, r: 10, maxR: 200, alpha: .7, speed: 640, color: 'rgba(230,250,255,', warp: true, w: 2.5 });
   } else if (g.type === 'zig') {
@@ -2342,7 +2383,7 @@ function castGesture(g) {
     camKick += .014;
     gridWave(g.x, g.y, 20, 800);
     // 引力奇点：吸敌 + 吸弹幕 + 中心绞杀
-    vortices.push({ x: g.x, y: g.y, r: 240, life: 2.3, t: 0, tick: 0, rot: rand(0, TAU) });
+    vortices.push({ x: g.x, y: g.y, r: 240, life: mods.rift ? 3.3 : 2.3, t: 0, tick: 0, rot: rand(0, TAU) });
     rings.push({ x: g.x, y: g.y, r: 8, maxR: 240, alpha: .8, speed: 500, color: 'rgba(178,107,255,', warp: true, w: 3 });
     let n = 0;
     for (const h of hunters) if (vulnerable(h) && hyp(h.x - g.x, h.y - g.y) < 260) n++;
@@ -2481,7 +2522,7 @@ function startGame() {
   fever = false; kills = 0; wave = 0;
   surgeTimer = 20; surgeWarn = 0;
   nextUpgradeAt = 250; goldenTimer = 12; golden = null;
-  choosing = false; mods = defaultMods();
+  choosing = false; mods = defaultMods(); showSlots();
   hitstop = 0; novaPending = false; choosePending = false; heartT = 0;
   hunters = []; rings = []; sparks = []; floats = [];
   bullets = []; storms = []; bolts = []; arrows = []; blasts = [];
@@ -3245,7 +3286,9 @@ function update(rdt, t) {
             : (wave >= 4 && r < .38) ? 'bomber'
             : (wave >= 3 && r < .5) ? 'splitter'
             : (wave >= 2 && r < .72) ? 'sniper' : 'chaser';
-          spawnEnemy(kind, x, y);
+          const medic = !isBoss && wave % 3 === 0 && k === 0;
+          spawnEnemy(kind, x, y, medic ? 'medic' : undefined);
+          if (medic) banner('精英织愈者 · 优先击破绿色光环');
         }
         if (isBoss) {
           let bx, by;
@@ -3371,6 +3414,14 @@ function update(rdt, t) {
         damageEnemy(i, 'blade', dc, 3);
         continue;
       }
+    }
+    if (h.elite === 'medic' && h.stun <= 0 && (h.healT -= dt) <= 0) {
+      h.healT = 4;
+      for (const ally of hunters) {
+        if (ally !== h && ally.kind !== 'overcore' && ally.hp < ally.maxHp && hyp(ally.x-h.x, ally.y-h.y) < 190)
+          ally.hp = Math.min(ally.maxHp, ally.hp + 1);
+      }
+      rings.push({x:h.x,y:h.y,r:8,maxR:190,alpha:.8,speed:360,color:'rgba(90,255,160,',warp:false,w:2});
     }
     const pdx = player.x - h.x, pdy = player.y - h.y, pd = hyp(pdx, pdy) + .001;
 
@@ -3527,7 +3578,7 @@ function update(rdt, t) {
           let off = rand(0, TAU), bn = h.enraged ? 10 : 8;
           let step = TAU / bn, bs = h.enraged ? 165 : 135;
           if (spiral) {
-            bn = 4; step = TAU / bn; off = h.volleyAngle;
+            bn = h.enraged && h.shieldT > 0 ? 8 : 4; step = TAU / bn; off = h.volleyAngle;
             h.volleyAngle += .24;
             h.shootT = h.enraged ? .48 : .72;
           } else if (lance) {
@@ -3547,22 +3598,26 @@ function update(rdt, t) {
         h.spawnT -= dt;
         if (h.bossStage === 1 && h.spawnT <= 0) {
           h.shieldT = 2.4;
+          if (h.enraged) h.volleyAngle += Math.PI / 4;
           h.spawnT = 8;
           addFloat(h.x, h.y - h.r, '星盾 · 刃舞可破', 'rgba(205,190,255,', 15);
         }
         if (h.bossStage === 2 && h.spawnT <= 1.2 && h.targetX === undefined) {
+          h.blastOffsets = h.enraged ? [-110, 0, 110] : [0];
           h.targetX = player.x;
           h.targetY = player.y;
           h.spawnT = 1.2;
           sfx.lock();
         }
         if (h.bossStage === 2 && h.spawnT <= 0) {
-          blasts.push({x:h.targetX, y:h.targetY, r:85, owner:h});
+          for (const offset of h.blastOffsets)
+            blasts.push({x:h.targetX + offset, y:h.targetY, r:85, owner:h});
           delete h.targetX;
           h.spawnT = h.enraged ? 4 : 6;
         }
         if (h.bossStage === 0 && h.spawnT <= 0) {
-          h.spawnT = 5;
+          h.spawnT = h.enraged ? 4 : 5;
+          if (h.enraged) spawnEnemy('chaser', h.x, h.y, 'swift');
           const m = spawnEnemy('mini', h.x + rand(-20, 20), h.y + rand(-20, 20));
           const a = rand(0, TAU); m.vx = Math.cos(a) * 180; m.vy = Math.sin(a) * 180;
         }
@@ -3734,7 +3789,7 @@ function update(rdt, t) {
   }
   // 星炮弹（真实时间：子弹时间里你的火力不减速）
   const AM = ammoMax();
-  if (ammo < AM) { reloadT += rdt; if (reloadT >= .95) { reloadT = 0; ammo++; } } else reloadT = 0;
+  if (ammo < AM) { reloadT += rdt; if (reloadT >= mods.reloadTime) { reloadT = 0; ammo++; } } else reloadT = 0;
   for (let i = playerBolts.length - 1; i >= 0; i--) {
     const b = playerBolts[i];
     b.t += rdt;
@@ -3767,7 +3822,8 @@ function update(rdt, t) {
         // 克制：对远程 / 重甲双倍伤害
         const heavy = h.kind === 'sniper' || h.kind === 'warden' || h.kind === 'phantom' || h.kind === 'overcore';
         const far = hyp(h.x - player.x, h.y - player.y) > 300;
-        const killed = damageEnemy(j, 'bolt', 1, heavy ? 2 : 1);
+        const killed = damageEnemy(j, 'bolt', 1, (heavy ? 2 : 1), b.reflected ? 1 : mods.cannonPower);
+        if (mods.focus && far && !b.reflected && !killed && h.kind !== 'overcore') h.stun = Math.max(h.stun, .5);
         if (killed && far && !b.reflected) {           // 狙杀奖励
           score += 40;
           energy = Math.min(100, energy + 5);
@@ -4376,8 +4432,10 @@ function render(t) {
       ctx.strokeStyle = '#ff9568';
       ctx.fillStyle = 'rgba(255,85,55,.14)';
       ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(h.targetX, h.targetY, 85, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(h.targetX, h.targetY, 85 * clamp(h.spawnT / 1.2, 0, 1), 0, TAU); ctx.stroke();
+      for (const offset of h.blastOffsets) {
+      ctx.beginPath(); ctx.arc(h.targetX + offset, h.targetY, 85, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(h.targetX + offset, h.targetY, 85 * clamp(h.spawnT / 1.2, 0, 1), 0, TAU); ctx.stroke();
+      }
       ctx.restore();
     }
     if (h.shieldT > 0) {
@@ -4599,7 +4657,7 @@ function render(t) {
     if (h.elite) {                        // 精英词缀光环
       ctx.setLineDash([6, 6]);
       ctx.lineDashOffset = -t * .03;
-      ctx.strokeStyle = h.elite === 'swift' ? 'rgba(255,210,90,.75)'
+      ctx.strokeStyle = h.elite === 'medic' ? '#65ffa1' : h.elite === 'swift' ? 'rgba(255,210,90,.75)'
                       : h.elite === 'tank' ? 'rgba(160,230,255,.75)' : 'rgba(255,150,60,.8)';
       ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(hx, hy, h.r + 10, 0, TAU); ctx.stroke();
