@@ -817,7 +817,7 @@ function expTick(dt){
       else e.charge=Math.max(0,e.charge-dt*.5);
       if(e.charge>=m.hold){
         e.nodes++;e.charge=0;e.delay=rand(10,19);score+=120;player.invuln=Math.max(player.invuln,1.5);
-        if(e.nodes===3){e.exit=true;e.remaining=Math.min(e.remaining,24);banner('撤离门已开启 · 前往金色门');}
+        if(e.nodes===3){e.exit=true;e.remaining=40;banner('撤离门已开启 · 请在 40 秒内撤离');}
       }
     }
   }else if(hyp(player.x-target.x,player.y-target.y)<64){
