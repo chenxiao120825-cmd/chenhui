@@ -426,7 +426,7 @@
 <div class="panel" id="choose">
   <div class="chTitle">谐 振 强 化</div>
   <div class="chSub">时 间 冻 结 · 择 一 而 铸</div>
-  <div id="cards"></div>
+  <div id="cards"></div><div id="draftTools" style="margin-top:12px"></div>
 </div>
 
 <div id="muteHint">ESC 设置 · M 静音 · H 图鉴 · 滚轮/123 换武器 · 二代 v3 大地图版</div>
@@ -1413,7 +1413,8 @@ let lives = 3, energy = 0, elapsed = 0, spawnTimer = 2.5;
 let timeScale = 1, slowHold = 0, shake = 0, glitch = 0, hitstop = 0;
 let fever = false, kills = 0, wave = 0;
 let surgeTimer = 20, surgeWarn = 0, surgeEdge = 0;
-let nextUpgradeAt = 250, goldenTimer = 12;
+const FIRST_DRAFT_SCORE = 100;
+let nextUpgradeAt = FIRST_DRAFT_SCORE, goldenTimer = 12;
 let dashCd = 0, dashFx = 0, wells = [], wellTimer = 15;   // 冲刺 / 引力井
 let grazeFxT = 0, grazeScoreT = 0, feverRingT = 0, heartT = 0;
 let killStreak = 0, killStreakT = 0, lastPopScore = 0, feverGlow = 0;
@@ -1449,7 +1450,31 @@ function syncStyle() {
   const nextTh = styleRank < RANKS.length - 1 ? RANKS[styleRank + 1].th : 740;
   $('styleMeter').style.height = clamp((styleV - r.th) / (nextTh - r.th) * 100, 0, 100) + '%';
 }
-let novaPending = false, choosePending = false;
+let novaPending = false, draftCredits=0, draftWindow=false, rerolls=2, missedSkills=0;
+let forge=null;
+function offerForge(dt) {
+  if (!forge || forge.done) return;
+  forge.held = hyp(player.x-forge.x,player.y-forge.y)<74 ? Math.min(5,forge.held+dt) : 0;
+  if (forge.held<5) return;
+  forge.done=true;
+  const pool=UPGRADES.filter(u=>cardGroup(u)==='skills' && mods.taken[u.id] && canDraft(u));
+  if (pool.length) {
+    const u=pool[Math.floor(rand(0,pool.length))]; takeCard(u);
+    banner('锻炉升阶 · '+u.name+' +'+rankOf(u.id));
+    if (u.id==='riposte' && rankOf(u.id)===3) chooseRiposte();
+  } else { draftCredits++; banner('锻炉储存一次选牌 · 波间领取'); }
+}
+function chooseRiposte() {
+  choosing=true;
+  const box=$('cards'); box.replaceChildren();
+  $('draftTools').replaceChildren();
+  for(const [id,title,desc] of [['charge','蓄势反击','每次弹反蓄一层，最多三层。下一发星炮每层增加 0.5 基础伤害。'],['scatter','碎镜散射','弹反发射三枚散弹，每枚造成 55% 基础伤害。']]) {
+    const b=document.createElement('button'); b.className='card rar-l'; b.innerHTML='<small>反击弹仓 +3 · 本局分支</small><h3>'+title+'</h3><p>'+desc+'</p>';
+    b.onclick=()=>{mods.branch=id;choosing=false;$('choose').classList.remove('on');showSlots();};
+    box.appendChild(b);
+  }
+  $('choose').classList.add('on');
+}
 try { best = +localStorage.getItem('ge_best') || 0; } catch (e) {}
 
 // ---------- 强化体系（含稀有度） ----------
@@ -1522,8 +1547,15 @@ const SETS = {
   blade:  { name:'刃舞流', th:[3,5], 3:m=>{ m.bladeRange+=.15; }, 5:m=>{ m.bladePower+=.35; } },
   cannon: { name:'星炮台', th:[3,5], 3:m=>{ m.ammoBonus+=2; },  5:m=>{ m.cannonPower+=.25; m.pierceBonus+=1; } },
 };
+function cardTags(id) {
+  if (id==='relay') return ['pulse','cannon'];
+  if (id==='riposte') return ['blade','cannon'];
+  return CARD_TAG[id] ? [CARD_TAG[id]] : [];
+}
 function gainTag(id) {
-  const tag = CARD_TAG[id];
+  for (const tag of cardTags(id)) gainSetTag(tag);
+}
+function gainSetTag(tag) {
   if (!tag) return;
   mods.tags = mods.tags || {};
   mods.setDone = mods.setDone || {};
@@ -1657,12 +1689,12 @@ function takeCard(u) {
 function showSlots() {
   for (const [group,el] of [['skills','skillSlots'],['contracts','contractSlots'],['basics','basicSlots']]) {
     const rule=SLOT_RULES[group], slots=mods[group];
-    const names=Array.from({length:rule.count},(_,i)=>slots[i] ? slots[i].name+(slots[i].rank?' +'+slots[i].rank:'') : '◇');
+    const names=Array.from({length:rule.count},(_,i)=>slots[i] ? slots[i].name+(slots[i].rank?' +'+slots[i].rank:'')+(slots[i].id==='riposte' && mods.branch ? (mods.branch==='charge'?'·蓄势':'·碎镜'):'') : '◇');
     $(el).textContent=rule.label+' '+slots.length+'/'+rule.count+'　'+names.join(' · ');
   }
 }
-function openChoice() {
-  if (choosing) return;
+function openChoice(redraw=false) {
+  if (choosing && !redraw) return;
   const pool = UPGRADES.filter(canDraft);
   const picks = pickWeighted(pool, 3);
   const avail = CONTRACTS.filter(canDraft);
@@ -1670,7 +1702,15 @@ function openChoice() {
     if (picks.length === 3) picks.pop();
     while (picks.length < 3 && avail.length) picks.push(avail.splice(Math.floor(rand(0, avail.length)), 1)[0]);
   }
+  const held=pool.filter(u=>cardGroup(u)==='skills' && mods.taken[u.id]);
+  const isHeld=u=>held.includes(u);
+  if (held.length && missedSkills>=2 && !picks.some(isHeld)) picks[picks.length-1]=held[Math.floor(rand(0,held.length))];
   if (!picks.length) return;
+  missedSkills=picks.some(isHeld) ? 0 : missedSkills+1;
+  const tools=$('draftTools'); tools.replaceChildren();
+  if(draftCredits>0) tools.append('本次选完还有 '+draftCredits+' 次　');
+  const redrawBtn=document.createElement('button'); redrawBtn.className='btn'; redrawBtn.textContent='重抽 · 剩 '+rerolls+' 次'; redrawBtn.disabled=!rerolls;
+  redrawBtn.onclick=()=>{if(rerolls>0){rerolls--;openChoice(true);}};tools.appendChild(redrawBtn);
   choosing = true;
   sfx.chime();
   const box = document.getElementById('cards');
@@ -1678,10 +1718,16 @@ function openChoice() {
   for (const u of picks) {
     const b = document.createElement('button');
     const owned=!!mods.taken[u.id], rule=SLOT_RULES[cardGroup(u)];
-    const detail=owned ? RANK_EFFECTS[u.id][0] : u.desc;
+    let detail=owned ? RANK_EFFECTS[u.id][0] : u.desc;
+    if(u.id==='riposte' && rankOf(u.id)===2) detail+='；本阶另选弹反分支';
+    if(u.id==='canDmg') {
+      const base=mods.cannonPower, after=base+(owned ? .12 : .35);
+      const points=(v,n)=>Number((Math.min(2.25,v*mods.dmgMult)*n).toFixed(2));
+      detail+=' · 普通 '+points(base,1)+'→'+points(after,1)+' / 重甲 '+points(base,2)+'→'+points(after,2);
+    }
     b.className = 'card magnetic rar-' + u.rar;
     b.innerHTML = `<span class="rar">${rule.label} · ${owned ? '+'+(rankOf(u.id)+1)+'/'+rule.max : RAR_NAME[u.rar]}</span>` +
-                  `<span class="tg">${CARD_TAG[u.id] ? TAG_NAME[CARD_TAG[u.id]] : ''}</span>` +
+                  `<span class="tg">${cardTags(u.id).map(t=>{const n=(mods.tags[t]||0)+(owned?0:1);return TAG_NAME[t]+' '+Math.min(n,5)+'/'+(n<=3?3:5);}).join(' · ')}</span>` +
                   `<div class="ic">${u.ic}</div>` +
                   `<h3>${u.name}</h3><p>${detail.replace('\n','<br>')}</p>`;
     b.addEventListener('click', () => {
@@ -1691,6 +1737,7 @@ function openChoice() {
       melodyNote();
       document.getElementById('choose').classList.remove('on');
       choosing = false;
+      if(u.id==='riposte' && rankOf(u.id)===3 && !mods.branch) chooseRiposte();
       player.invuln = Math.max(player.invuln, .9);
       rings.push({ x: player.x, y: player.y, r: 6, maxR: 150, alpha: .8, speed: 420, color: 'rgba(102,247,255,', warp: true, w: 2.5 });
     });
@@ -1729,7 +1776,7 @@ function syncBossHealth() {
   const bar = $('bossHealthBar');
   if (panel.hidden || bar.value !== boss.hp || bar.max !== boss.maxHp || panel.dataset.phase !== phase) {
     panel.dataset.phase = phase;
-    $('bossHealthText').textContent = boss.bossName + ' · ' + phase + ' · ' + boss.hp + ' / ' + boss.maxHp;
+    $('bossHealthText').textContent = boss.bossName + ' · ' + phase + ' · ' + Number(boss.hp.toFixed(2)) + ' / ' + boss.maxHp;
     $('bossHint').textContent = boss.finalForm ? ['双环交错，穿过第一环后横移半格', '旋弹会换向，注意弹隙再跟随', '十字轰炸，朝斜角撤出橙圈'][boss.bossStage] : ['迷你体聚拢时，用脉冲清场', '紫盾亮起，用刃舞破盾或等盾消退', '脚下出现橙圈，立即跑出外圈'][boss.bossStage];
     bar.max = boss.maxHp;
     bar.value = boss.hp;
@@ -1903,8 +1950,9 @@ function damageEnemy(idx, cause, chain, dmg, shotPower = 1) {
     addFloat(h.x, h.y - h.r, '星盾破碎', 'rgba(205,190,255,', 15);
   }
   const weaponPower = cause === 'blade' ? mods.bladePower : shotPower;
-  const damage = Math.round((dmg || 1) * Math.min(2.25, weaponPower * mods.dmgMult));
-  h.hp -= h.kind === 'overcore' ? Math.min(4, damage) : damage;
+  const damage = (dmg || 1) * Math.min(2.25, weaponPower * mods.dmgMult);
+  const wasShielded = h.hp >= 2;
+  h.hp = Math.round((h.hp - (h.kind === 'overcore' ? Math.min(4, damage) : damage))*1000)/1000;
   // 形变反馈：爆炸→橡皮泥压扁回弹；星炮→咬出持久缺口
   h.defAng = Math.atan2(h.y - player.y, h.x - player.x);
   if (cause === 'wave') h.def = Math.max(h.def, h.kind === 'overcore' ? .25 : .65);
@@ -1922,7 +1970,7 @@ function damageEnemy(idx, cause, chain, dmg, shotPower = 1) {
     h.vx += dx / d * kb; h.vy += dy / d * kb;
     burst(h.x, h.y, 8, GLOW.white, 200);
     rings.push({ x: h.x, y: h.y, r: 3, maxR: 46, alpha: .7, speed: 260, color: 'rgba(240,250,255,', warp: false, w: 1.5 });
-    if (h.kind === 'warden' && h.hp === 1) { sfx.glass(); burst(h.x, h.y, 18, GLOW.white, 300); shatter(h.x, h.y, '210,235,255', 8, 7, 340); addFlare(h.x, h.y, 70); addFloat(h.x, h.y - 14, '破 盾', 'rgba(230,245,255,', 15); }
+    if (h.kind === 'warden' && wasShielded && h.hp < 2) { sfx.glass(); burst(h.x, h.y, 18, GLOW.white, 300); shatter(h.x, h.y, '210,235,255', 8, 7, 340); addFlare(h.x, h.y, 70); addFloat(h.x, h.y - 14, '破 盾', 'rgba(230,245,255,', 15); }
     else sfx.tick();
     if (h.bossStage === 0) {
       const m = spawnEnemy('mini', h.x + rand(-20, 20), h.y + rand(-20, 20));
@@ -2029,7 +2077,7 @@ function killEnemy(idx, cause, chain) {
     calmT = 5;                               // 潮汐平息：片刻安宁与丰收
     banner('潮 汐 平 息');
     if (!golden) goldenTimer = Math.min(goldenTimer, 1.5);
-    choosePending = true;   // Boss 击杀必掉强化
+    draftCredits++; draftWindow=true;   // Boss 击杀必掉强化
   }
   // 连杀音调递升
   if (cause === 'blade') sfx.blade();
@@ -2328,8 +2376,11 @@ function bladeSlash() {
     const b = bullets[i];
     const d = hyp(b.x - player.x, b.y - player.y);
     if (d < RANGE + 13 && adiff(Math.atan2(b.y - player.y, b.x - player.x), aimAng) < ARC * .9) {
-      const c = Math.cos(aimAng), s = Math.sin(aimAng);
-      playerBolts.push({ x: b.x, y: b.y, vx: c * 780, vy: s * 780, t: 0, life: .8+.1*rankOf("mirror"), pierce: mods.mirror ? 2 : 1, hit: [], reflected: true });
+      if(mods.branch==='charge') mods.charges=Math.min(3,(mods.charges||0)+1);
+      for(const offset of (mods.branch==='scatter'?[-.27,0,.27]:[0])){
+      const c = Math.cos(aimAng+offset), s = Math.sin(aimAng+offset);
+      playerBolts.push({ x: b.x, y: b.y, vx: c * 780, vy: s * 780, t: 0, life: .8+.1*rankOf("mirror"), pierce: mods.mirror ? 2 : 1, hit: [], reflected: true, scale:mods.branch==="scatter"?.55:1 });
+      }
       burst(b.x, b.y, 4, GLOW.cyan, 140);
       if (mods.riposte) { ammo = Math.min(ammoMax(), ammo+1); energy=Math.min(mods.energyCap,energy+rankOf("riposte")); }
       achStats.parries++; checkAch();
@@ -2349,7 +2400,8 @@ function cannonShot() {
   sfx.shot();
   const c = Math.cos(aimAng), s = Math.sin(aimAng);
   playerBolts.push({ x: player.x + c * 16, y: player.y + s * 16, vx: c * 950, vy: s * 950,
-                     t: 0, life: .9, pierce: 2 + (mods.pierceBonus || 0), hit: [], homing: true });
+                     t: 0, life: .9, pierce: 2 + (mods.pierceBonus || 0), hit: [], homing: true, charge:(mods.charges||0)*.5 });
+  mods.charges=0;
   addFlare(player.x + c * 22, player.y + s * 22, 40, aimAng);
   shake = Math.max(shake, 2.5);
 }
@@ -2652,9 +2704,9 @@ function startGame() {
   elapsed = 0; spawnTimer = 2.2;
   fever = false; kills = 0; wave = 0;
   surgeTimer = 20; surgeWarn = 0;
-  nextUpgradeAt = 250; goldenTimer = 12; golden = null;
+  nextUpgradeAt = FIRST_DRAFT_SCORE; goldenTimer = 12; golden = null;
   choosing = false; mods = defaultMods(); showSlots();
-  hitstop = 0; novaPending = false; choosePending = false; heartT = 0;
+  hitstop = 0; novaPending=false; draftCredits=0;draftWindow=false;rerolls=2;missedSkills=0;forge=null; heartT = 0;
   hunters = []; rings = []; sparks = []; floats = [];
   bullets = []; storms = []; bolts = []; arrows = []; blasts = [];
   ghostTrail = []; orbA = 0; orbCd = [0, 0, 0, 0];
@@ -2676,7 +2728,7 @@ function startGame() {
   camX = 0; camY = 0;
   dashCd = 0; dashFx = 0; wells = []; wellTimer = 15;
   achRun.mask = 0; achRun.hits = 0;
-  if (meta.head) choosePending = true;       // 局外：强化起点
+  if (meta.head) {draftCredits++;draftWindow=true;}       // 局外：强化起点
   toggleShop(false);
   recipeIdx = 0; comboSeq = []; comboSkill = null; syncRecipeHud();
   gameEvent = null; eventT = 0; nextEventAt = 35; windA = 0; pickups = [];
@@ -3415,6 +3467,7 @@ function update(rdt, t) {
   // ---- 波次与生成 ----
   if (state === 'PLAY') {
     elapsed += rdt;
+    if(forge && !forge.done) offerForge(rdt);
     spawnTimer -= dt;
     const cap = Math.min(7, 1 + Math.floor(elapsed / 12));
     if (spawnTimer <= 0 && calmT <= 0 && hunters.filter(h => h.kind !== 'mini').length < cap) {
@@ -3469,11 +3522,19 @@ function update(rdt, t) {
       surgeTimer -= calmT > 0 ? 0 : dt;
       if (surgeTimer <= 0) {
         wave++;
-        openChoice();          // 肉鸽节奏：每清掉一波，必给一张卡
+        draftCredits++; draftWindow=true;
+        if (wave===4) {
+          const sites=terrain.filter(p=>p.kind==='wall' && p.w>p.h)
+            .flatMap(w=>[-1,1].map(side=>({x:w.x,y:w.y+side*(w.h/2+82),r:60})))
+            .filter(site=>!terrain.some(p=>(p.reef || p.kind==='wall') && terrainOverlap(p,site)))
+            .sort((a,b)=>hyp(a.x-player.x,a.y-player.y)-hyp(b.x-player.x,b.y-player.y));
+          if(sites.length) forge={...sites[0],held:0,done:false};
+        }
+        if (wave===5) forge=null;
         surgeWarn = 2.2;
         surgeEdge = Math.floor(rand(0, 4));
         surgeTimer = Math.max(15, 26 - wave * .8);
-        banner(wave % 5 === 0 ? `第 ${wave} 波 · 异 常 质 量 逼 近` : `第 ${wave} 波 · 潮汐来袭`);
+        banner(wave===4 ? '第 4 波 · 去小地图金色菱形处驻守 5 秒' : wave % 5 === 0 ? `第 ${wave} 波 · 异 常 质 量 逼 近` : `第 ${wave} 波 · 潮汐来袭`);
         sfx.warn();
         shake = Math.max(shake, 5);
       }
@@ -3545,9 +3606,10 @@ function update(rdt, t) {
     }
     if (!unlocked.blade && (score >= 100 || elapsed >= 12)) unlockWeapon('blade', '刃 舞 形 态');
     if (!unlocked.cannon && (score >= 450 || elapsed >= 35)) unlockWeapon('cannon', '星 炮 形 态');
-    if (score >= nextUpgradeAt) {
+    if (score >= nextUpgradeAt || (nextUpgradeAt===FIRST_DRAFT_SCORE && elapsed>=12)) {
+      if(nextUpgradeAt===FIRST_DRAFT_SCORE && wave===0) draftWindow=true;
       nextUpgradeAt = Math.round(nextUpgradeAt * 1.9 + 150);
-      choosePending = true;
+      draftCredits++;
     }
   }
 
@@ -3998,7 +4060,7 @@ function update(rdt, t) {
         // 克制：对远程 / 重甲双倍伤害
         const heavy = h.kind === 'sniper' || h.kind === 'warden' || h.kind === 'phantom' || h.kind === 'overcore';
         const far = hyp(h.x - player.x, h.y - player.y) > 300;
-        const killed = damageEnemy(j, 'bolt', 1, (heavy ? 2 : 1), b.reflected ? 1 : mods.cannonPower);
+        const killed = damageEnemy(j, 'bolt', 1, (heavy ? 2 : 1)+(b.charge||0), b.reflected ? (b.scale||1) : mods.cannonPower);
         if (mods.focus && far && !b.reflected && !killed && h.kind !== 'overcore') h.stun = Math.max(h.stun, .5+.08*rankOf("focus"));
         if (killed && far && !b.reflected) {           // 狙杀奖励
           score += 40;
@@ -4334,9 +4396,11 @@ function update(rdt, t) {
   }
 
   // 强化选择（Boss 掉落 / 分数阈值统一在帧尾触发）
-  if (choosePending && state === 'PLAY') {
-    choosePending = false;
-    openChoice();
+  if (draftWindow && state==='PLAY' && !choosing) {
+    if (!hunters.some(h=>h.kind==='overcore')) {
+      if(draftCredits>0){draftCredits--;openChoice();}
+      if(!draftCredits) draftWindow=false;
+    } else draftWindow=false;
   }
   if (state !== 'TITLE') syncHud();
 }
@@ -4393,6 +4457,7 @@ function drawMinimap(t) {
     const r = h.kind === 'overcore' ? 3.2 : 1.8;
     ctx.beginPath(); ctx.arc(x0 + h.x * sc, y0 + h.y * sc, r, 0, TAU); ctx.fill();
   }
+  if(forge && !forge.done){ctx.fillStyle='#ffe166';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('◆',x0+forge.x*sc,y0+forge.y*sc+4);}
   // 光球
   ctx.fillStyle = '#eafeff';
   ctx.beginPath(); ctx.arc(x0 + player.x * sc, y0 + player.y * sc, 3.2, 0, TAU); ctx.fill();
@@ -4420,6 +4485,11 @@ function render(t) {
   if (shake > 0) ctx.translate(rand(-shake, shake) * .5, rand(-shake, shake) * .5);
   grid.render();
   drawTerrain(t);
+  if(forge && !forge.done){
+    ctx.save();ctx.strokeStyle='#ffd368';ctx.fillStyle='#ffe998';ctx.textAlign='center';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(forge.x,forge.y,74,0,TAU);ctx.stroke();
+    ctx.font='bold 16px sans-serif';ctx.fillText('◇ 锻炉 '+forge.held.toFixed(1)+' / 5秒',forge.x,forge.y);ctx.restore();
+  }
   // 禁区带：地图四边玩家进不去的区域，压暗给"力场"的感觉
   ctx.fillStyle = 'rgba(2,3,10,.62)';
   ctx.fillRect(0, 0, WORLD_W, INSET);
