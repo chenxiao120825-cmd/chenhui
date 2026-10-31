@@ -503,7 +503,7 @@
       <div class="gCard"><h4><span class="gi gVio">◌</span>相位幽灵 · 2血</h4>
         <p>追击→隐身→<b>瞬移到你身边</b>（紫圈预警 0.55s）→现身。隐身时免疫一切。</p></div>
       <div class="gCard"><h4><span class="gi gPink">◉</span>阶段首领 · 巨核</h4>
-        <p>每 5 波出现一位，三种首领循环登场。第 5 波巨核（8 血）发射环形弹幕，穿过弹隙；第 10 波旋星巨核（10 血）连续旋转射击，顺着空隙移动；第 15 波裂矛巨核（12 血）朝你发射扇形弹幕，横移脱离射线。半血后暴走。击杀必掉<b>强化+生命碎片</b>。</p></div>
+        <p>每 5 波出现一位，三种首领循环登场。第 5 波巨核（8 血）受击分裂出迷你体，先清追兵再穿过环形弹隙；第 10 波旋星巨核（10 血）周期展开紫色星盾，用刃舞破盾或等 2.4 秒再攻击；第 15 波裂矛巨核（12 血）锁定脚下位置，1.2 秒后轰炸，离开橙色外圈即可躲开。半血后暴走。击杀必掉<b>强化+生命碎片</b>。</p></div>
       <div class="gCard"><h4><span class="gi gVio">✕</span>织网者 · 2血</h4>
         <p>在场上游走，身后拉出<b class="gPink">激光丝网</b>（存续 4s），触网即伤。逼你改变走位习惯——或用星炮远程点名。</p></div>
       <div class="gCard"><h4><span class="gi gOr">◍</span>吞尘者 · 2血</h4>
@@ -1746,6 +1746,12 @@ const tangible   = h => h.kind !== 'phantom' || h.pstate === 'in';
 // hp 扣减；击杀返回 true
 function damageEnemy(idx, cause, chain, dmg) {
   const h = hunters[idx];
+  if (h.shieldT > 0) {
+    if (cause !== 'blade') return false;
+    h.shieldT = 0;
+    sfx.glass();
+    addFloat(h.x, h.y - h.r, '星盾破碎', 'rgba(205,190,255,', 15);
+  }
   h.hp -= Math.round((dmg || 1) * mods.dmgMult);
   // 形变反馈：爆炸→橡皮泥压扁回弹；星炮→咬出持久缺口
   h.defAng = Math.atan2(h.y - player.y, h.x - player.x);
@@ -1766,7 +1772,7 @@ function damageEnemy(idx, cause, chain, dmg) {
     rings.push({ x: h.x, y: h.y, r: 3, maxR: 46, alpha: .7, speed: 260, color: 'rgba(240,250,255,', warp: false, w: 1.5 });
     if (h.kind === 'warden' && h.hp === 1) { sfx.glass(); burst(h.x, h.y, 18, GLOW.white, 300); shatter(h.x, h.y, '210,235,255', 8, 7, 340); addFlare(h.x, h.y, 70); addFloat(h.x, h.y - 14, '破 盾', 'rgba(230,245,255,', 15); }
     else sfx.tick();
-    if (h.kind === 'overcore') {
+    if (h.bossStage === 0) {
       const m = spawnEnemy('mini', h.x + rand(-20, 20), h.y + rand(-20, 20));
       const a = rand(0, TAU); m.vx = Math.cos(a) * 200; m.vy = Math.sin(a) * 200;
     }
@@ -3535,8 +3541,25 @@ function update(rdt, t) {
           sfx.shoot();
           rings.push({ x: h.x, y: h.y, r: h.r, maxR: h.r + 50, alpha: .6, speed: 240, color: 'rgba(255,120,90,', warp: false, w: 2 });
         }
+        if (h.shieldT > 0) h.shieldT -= dt;
         h.spawnT -= dt;
-        if (h.spawnT <= 0) {
+        if (h.bossStage === 1 && h.spawnT <= 0) {
+          h.shieldT = 2.4;
+          h.spawnT = 8;
+          addFloat(h.x, h.y - h.r, '星盾 · 刃舞可破', 'rgba(205,190,255,', 15);
+        }
+        if (h.bossStage === 2 && h.spawnT <= 1.2 && h.targetX === undefined) {
+          h.targetX = player.x;
+          h.targetY = player.y;
+          h.spawnT = 1.2;
+          sfx.lock();
+        }
+        if (h.bossStage === 2 && h.spawnT <= 0) {
+          blasts.push({x:h.targetX, y:h.targetY, r:85, owner:h});
+          delete h.targetX;
+          h.spawnT = h.enraged ? 4 : 6;
+        }
+        if (h.bossStage === 0 && h.spawnT <= 0) {
           h.spawnT = 5;
           const m = spawnEnemy('mini', h.x + rand(-20, 20), h.y + rand(-20, 20));
           const a = rand(0, TAU); m.vx = Math.cos(a) * 180; m.vy = Math.sin(a) * 180;
@@ -3650,7 +3673,7 @@ function update(rdt, t) {
       for (let i = hunters.length - 1; i >= 0; i--) {
         const h = hunters[i];
         if (!vulnerable(h)) continue;
-        if (hyp(h.x - bl.x, h.y - bl.y) < bl.r + h.r) damageEnemy(i, 'wave', 1);
+        if (h !== bl.owner && hyp(h.x - bl.x, h.y - bl.y) < bl.r + h.r) damageEnemy(i, 'wave', 1);
       }
       continue;
     }
@@ -3665,7 +3688,7 @@ function update(rdt, t) {
     for (let i = hunters.length - 1; i >= 0; i--) {
       const h = hunters[i];
       if (!vulnerable(h)) continue;
-      if (hyp(h.x - bl.x, h.y - bl.y) < bl.r + h.r) damageEnemy(i, 'wave', 1);
+      if (h !== bl.owner && hyp(h.x - bl.x, h.y - bl.y) < bl.r + h.r) damageEnemy(i, 'wave', 1);
     }
   }
   blasts = [];
@@ -4346,6 +4369,19 @@ function render(t) {
     }
     const jx = h.stun > 0 ? rand(-2, 2) : 0, jy = h.stun > 0 ? rand(-2, 2) : 0;
     const hx = h.x + jx, hy = h.y + jy;
+    if (h.bossStage === 2 && h.targetX !== undefined) {
+      ctx.save();
+      ctx.strokeStyle = '#ff9568';
+      ctx.fillStyle = 'rgba(255,85,55,.14)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(h.targetX, h.targetY, 85, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(h.targetX, h.targetY, 85 * clamp(h.spawnT / 1.2, 0, 1), 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+    if (h.shieldT > 0) {
+      ctx.strokeStyle = '#c5acff'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(hx, hy, h.r + 18, 0, TAU); ctx.stroke();
+    }
     // 弹性形变（狙击手是刚性晶体，跳过；光束/预瞄线不受影响）
     const df = clamp(h.def, -.55, .55);
     const deform = Math.abs(df) > .01 && h.kind !== 'sniper';
