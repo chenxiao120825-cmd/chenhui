@@ -49,21 +49,21 @@
   .life{width:16px;height:8px;border-radius:2px;background:var(--cyan);
     box-shadow:0 0 10px var(--cyan);transition:all .3s}
   .life.off{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(120,200,255,.35)}
-  #eventChip{top:64px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .4s}
+  #eventChip{top:82px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .4s}
   #eventChip .lbl{color:#ffb8d0;opacity:.9;font-size:11px;letter-spacing:.3em}
   #eventBarWrap{width:130px;height:3px;margin:6px auto 0;background:rgba(255,120,160,.15);
     border-radius:2px;overflow:hidden}
   #eventBar{height:100%;width:100%;background:linear-gradient(90deg,var(--pink),var(--gold));
     box-shadow:0 0 8px rgba(255,61,127,.7)}
-  #energyWrap{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
-    width:min(320px,60vw);text-align:center}
+  #energyWrap{position:absolute;top:52px;left:50%;transform:translateX(-50%);
+    width:min(230px,50vw);text-align:center}
   #energyBar{height:5px;border-radius:3px;background:rgba(110,180,255,.14);
     overflow:hidden;position:relative;box-shadow:0 0 14px rgba(80,160,255,.15)}
   #energyFill{height:100%;width:0%;border-radius:3px;
     background:linear-gradient(90deg,var(--blue),var(--cyan));
     box-shadow:0 0 12px var(--cyan);transition:width .18s ease-out}
   #energyMark{position:absolute;top:-3px;bottom:-3px;left:30%;width:1px;background:rgba(210,245,255,.5)}
-  #energyWrap .lbl{display:block;margin-top:9px}
+  #energyWrap .lbl{display:block;margin-top:4px}
 
   /* ---- 横幅 & 播报 ---- */
   #banner{position:fixed;top:14%;left:0;right:0;z-index:15;text-align:center;
@@ -199,11 +199,11 @@
     text-shadow:0 0 30px rgba(255,61,127,1),0 0 80px rgba(255,61,127,.5);
     opacity:0;transition:opacity .6s;pointer-events:none}
   #bossName.on{opacity:1}
-  #bossHealth{position:absolute;top:max(56px,9vh);left:50%;transform:translateX(-50%);
+  #bossHealth{position:absolute;top:max(112px,9vh);left:50%;transform:translateX(-50%);
     width:min(54vw,400px);text-align:center;color:#ffe4ee;font-weight:700;
     text-shadow:0 1px 4px #000;pointer-events:none}
   #bossHealth progress{display:block;width:100%;height:10px;margin-top:4px;accent-color:#ff578e}
-  body.cine #bossHealth{top:calc(11vh + 40px)}
+  body.cine #bossHealth{top:max(112px,calc(11vh + 40px))}
 
   /* ---- 设置面板 ---- */
   #settings{position:fixed;inset:0;z-index:25;display:flex;align-items:center;justify-content:center;
