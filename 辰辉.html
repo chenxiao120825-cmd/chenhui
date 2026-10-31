@@ -204,6 +204,11 @@
   #modeSelect .btn,#difficultySelect .btn{margin-top:8px}
   #modeSelect p{font-size:13px;margin:5px 12px 12px;color:#afcbd7}
   #difficultySelect button{margin:6px} body.pacifist #weapons,body.pacifist #energyWrap,body.pacifist #ultChip{display:none}
+  #fragmentBars{margin-top:5px;padding-top:4px;border-top:1px solid #ffe2aa44;font-size:11px;color:#cbe5ed}
+  .fragRow{display:grid;grid-template-columns:4.5em 1fr 3em;align-items:center;gap:5px}
+  .fragTrack{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+  .fragTrack i{height:6px;background:#384552;border-radius:1px}
+  .fragTrack .lit{background:#71ede1}.fragRow.complete .lit{background:#ffd278}
   #expHud.urgent{color:#ffb3a5;border-color:#ff7769}
   body.expedition #buildSlots,body.expedition #recipeChip,body.expedition #gestHint{display:none}
   #extremeResult{position:absolute;top:18%;width:100%;text-align:center;color:#ffd08a;font-size:22px}
@@ -379,7 +384,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
-  <div id="expHud" hidden></div><div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
+  <div id="expHud" hidden><div id="expStatus"></div><div id="fragmentBars" hidden aria-label="碎片收集进度"></div></div><div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
   <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
@@ -713,7 +718,7 @@ function survivalTick(dt){
     v.progress=0;v.hits=achRun.hits;v.target=trialTarget();banner('任务完成 · '+TRIALS[v.task][0]);
   }
   const [nextName,nextType,nextGoal]=TRIALS[v.task];
-  $('expHud').textContent='吊炸天 · 禁武生存　'+Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0')+' / 20:00\n任务 '+(v.task+1)+'/10　'+nextName+' '+Math.floor(v.progress)+'/'+nextGoal+'\n'+({dust:'收集光尘',safe:'连续无伤（秒）',reach:'前往黄色旗标',hold:'在旗标旁驻守（秒）'}[nextType])+'\n'+PASSIVES.map(([n],i)=>n+' '+v.level[i]+'/5').join(' · ');
+  $('expStatus').textContent='吊炸天 · 禁武生存　'+Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0')+' / 20:00\n任务 '+(v.task+1)+'/10　'+nextName+' '+Math.floor(v.progress)+'/'+nextGoal+'\n'+({dust:'收集光尘',safe:'连续无伤（秒）',reach:'前往黄色旗标',hold:'在旗标旁驻守（秒）'}[nextType])+'\n'+PASSIVES.map(([n],i)=>n+' '+v.level[i]+'/5').join(' · ');
   if(finished)v.points++;
   if(elapsed>=v.nextPoint){v.nextPoint+=60;v.points++;}
   if(v.points>0){v.points--;passiveChoice();}
@@ -725,6 +730,16 @@ function drawTrial(mini,x0=0,y0=0,sc=1){
   ctx.save();ctx.strokeStyle=ctx.fillStyle='#ffda76';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,mini?5:80,0,TAU);ctx.stroke();ctx.textAlign='center';ctx.fillText('⚑',x,y);ctx.restore();
 }
 const EXP_ITEMS={pulse:'脉冲',blade:'刃舞',cannon:'星炮',line:'流星斩',circle:'引力奇点',zig:'天雷连环',dash:'冲刺',push:'排斥波',repair:'应急修复'};
+function syncFragmentBars(){
+  const box=$('fragmentBars');
+  box.hidden=!expedition;
+  if(!expedition){box.replaceChildren();return;}
+  box.innerHTML='<strong>碎片收集</strong>'+Object.entries(EXP_ITEMS).map(([id,name])=>{
+    const n=expedition.bag[id]||0;
+    const cells=Array.from({length:5},(_,i)=>i<n?'<i class="lit"></i>':'<i></i>').join('');
+    return '<div class="fragRow '+(n===5?'complete':'')+'"><span>'+name+'</span><span class="fragTrack" aria-hidden="true">'+cells+'</span><span>'+(n===5?'已合成':n+'/5')+'</span></div>';
+  }).join('');
+}
 const EXP_MAPS=[
   {name:'震裂矿坑',color:'#ffa975',rule:'红圈蓄亮后地震，绕开矿脉',task:'勘测矿脉',hold:1.5,rows:['..R..R...', '.R..X..R.', '...R..X..', '.X...R...', '...R...R.']},
   {name:'逆潮航道',color:'#75f1cb',rule:'流带每 6 秒反向，看箭头走',task:'校准浮标',hold:2,rows:['..>...R..', '.R..>...R', '...>..>..', '.>...R..>', '...R..>..']},
@@ -828,7 +843,7 @@ function expTick(dt){
     }
     e.drop.charge=clamp(e.drop.charge+(close?dt:-dt*.5),0,3);
     if(e.drop.charge>=3){
-      const id=e.drop.id;e.bag[id]=(e.bag[id]||0)+1;e.drop=null;e.nextDrop=elapsed+rand(15,23);
+      const id=e.drop.id;e.bag[id]=(e.bag[id]||0)+1;syncFragmentBars();e.drop=null;e.nextDrop=elapsed+rand(15,23);
       if(e.bag[id]===5){
         if(Object.hasOwn(unlocked,id)){unlocked[id]=true;if(!weapon)weapon=id;syncWeapons();}
         shout(EXP_ITEMS[id]+' · 合成');
@@ -836,9 +851,9 @@ function expTick(dt){
     }
   }
   const warning=mode===4 && e.age%12>=7?' · 暗蚀将至／进入紫灯圈':mode===0 && e.age%6>=3.5?' · 震区预警':'';
-  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片')+'\n'+Object.entries(e.bag).map(([k,n])=>EXP_ITEMS[k]+' '+n+'/5').join('　');
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
   $('expHud').classList.toggle('urgent',e.remaining<=10);
-  if($('expHud').textContent!==msg)$('expHud').textContent=msg;
+  if($('expStatus').textContent!==msg)$('expStatus').textContent=msg;
   return false;
 }
 function expMarkers(mini,x0=0,y0=0,sc=1){
@@ -2947,7 +2962,8 @@ function startGame(extreme=false) {
     expedition={order,stage:0,bag:{},nextDrop:rand(15,23),hintAt:0};
   }
   buildTerrain(); document.body.classList.toggle('expedition',!!(expedition||survival));document.body.classList.toggle('pacifist',!!survival);
-  $('expHud').hidden=!(expedition||survival);$('expHud').classList.remove('urgent');$('expHud').textContent='';$('extremeResult').hidden=true;
+  $('expHud').hidden=!(expedition||survival);$('expHud').classList.remove('urgent');$('expStatus').textContent='';$('extremeResult').hidden=true;
+  syncFragmentBars();
   state = 'PLAY';
   score = 0; displayScore = 0; combo = 0; bestCombo = 0; comboTimer = 0;
   utilityReadyAt = 0;
