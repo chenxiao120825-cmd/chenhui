@@ -456,9 +456,9 @@
     <div class="gGrid">
       <div class="gCard"><h4><span class="gi">◎</span>脉冲</h4>
         <p>耗 30 能量的全向冲击波：清弹幕、推光尘、多杀有连碎加成。会被承载者护盾<b>格挡</b>。</p></div>
-      <div class="gCard"><h4><span class="gi gGold">☾</span>刃舞 <span style="opacity:.5">150分解锁</span></h4>
+      <div class="gCard"><h4><span class="gi gGold">☾</span>刃舞 <span style="opacity:.5">100 分或生存 12 秒</span></h4>
         <p>零耗能近战。每斩中一敌<b>+6 能量（每挥最多 18）</b>；斩弹幕=<b class="gGold">弹反</b>；斩点燃的自爆蜂=<b>拆解</b>。0.8s 内三连挥，第三段为<b class="gGold">金色大横扫</b>（范围+27%、伤害×2）。</p></div>
-      <div class="gCard"><h4><span class="gi gVio">✛</span>星炮 <span style="opacity:.5">600分解锁</span></h4>
+      <div class="gCard"><h4><span class="gi gVio">✛</span>星炮 <span style="opacity:.5">450 分或生存 35 秒</span></h4>
         <p>独立弹药 4 发（自动回填）。轻微追踪，对<b class="gVio">狙击手/承载者/幽灵/巨核</b>双倍伤害并<b>咬碎其外形</b>；300px 外击杀=狙杀奖励。</p></div>
     </div>
 
@@ -784,6 +784,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Space' && state === 'PLAY' && !choosing && !paused) { e.preventDefault(); doDash(); }
   if (e.key >= '1' && e.key <= '3' && state === 'PLAY' && !paused) {
     const w = WEAPONS[+e.key - 1];
+    if (w && !unlocked[w.id]) { banner(w.name + ' · ' + unlockHint(w.id)); return; }
     if (w && unlocked[w.id] && weapon !== w.id) { weapon = w.id; sfx.switchW(); syncWeapons(); }
   }
   if ((e.key === 'q' || e.key === 'Q') && state === 'PLAY' && !choosing && !paused) castUlt();
@@ -2168,14 +2169,18 @@ function unlockWeapon(id, label) {
   banner('滚轮 / 数字键 切换武器形态');
   syncWeapons();
 }
+function unlockHint(id) {
+  return id === 'blade' ? '100 分或生存 12 秒' : '450 分或生存 35 秒';
+}
 function syncWeapons() {
   const el = $('weapons');
   el.innerHTML = '';
   WEAPONS.forEach((w, i) => {
     const d = document.createElement('div');
+    if (!unlocked[w.id]) d.title = w.name + ' · ' + unlockHint(w.id);
     d.className = 'wslot' + (unlocked[w.id] ? (weapon === w.id ? ' on' : '') : ' lock');
     d.innerHTML = `<span class="wic">${unlocked[w.id] ? w.ic : '?'}</span>` +
-                  `<span class="wname">${unlocked[w.id] ? w.name : '未解锁'}</span>` +
+                  `<span class="wname">${unlocked[w.id] ? w.name : w.name + ' 🔒'}</span>` +
                   `<span class="wkey">${i + 1}</span>`;
     el.appendChild(d);
   });
@@ -3307,8 +3312,8 @@ function update(rdt, t) {
         if (d < pairA.r + pairB.r + 4) mergePair();
       }
     }
-    if (!unlocked.blade && score >= 150) unlockWeapon('blade', '刃 舞 形 态');
-    if (!unlocked.cannon && score >= 600) unlockWeapon('cannon', '星 炮 形 态');
+    if (!unlocked.blade && (score >= 100 || elapsed >= 12)) unlockWeapon('blade', '刃 舞 形 态');
+    if (!unlocked.cannon && (score >= 450 || elapsed >= 35)) unlockWeapon('cannon', '星 炮 形 态');
     if (score >= nextUpgradeAt) {
       nextUpgradeAt = Math.round(nextUpgradeAt * 1.9 + 150);
       choosePending = true;
