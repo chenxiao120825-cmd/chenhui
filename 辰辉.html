@@ -518,6 +518,8 @@
         <p>两侧同生的同类精英被<b>引力</b>缓缓拉向彼此（金色系带越亮越近）。相遇则<b class="gGold">融合</b>：更大更强、分数 ×3、获得专属能力。杀掉一只即可阻止。</p></div>
     </div>
 
+    <div class="gSec">— 地 形 —</div>
+    <div class="gGrid"><div class="gCard"><h4>掩体与力场</h4><p>青色晶礁和断墙挡路也挡弹。橙色虚线光幕可穿行，会拦截双方弹丸。绿色箭头带会把光球横向推走。紫色减速场内移动变慢。</p></div></div>
     <div class="gSec">— 世 界 规 则 —</div>
     <div class="gGrid">
       <div class="gCard"><h4><span class="gi gPink">〜</span>潮汐 & 异变</h4>
@@ -658,10 +660,32 @@ function buildTerrain() {
     [.26,.27,32,true],[.48,.32,48,true],[.71,.25,70,false],
     [.3,.57,75,false],[.56,.55,38,true],[.76,.65,45,true],
     [.43,.78,36,true],[.6,.78,78,false],[.21,.79,42,true]
-  ]) terrain.push({x:INSET+u*(WORLD_W-2*INSET), y:INSET+v*(WORLD_H-2*INSET), r, reef});
+  ]) terrain.push({x:INSET+u*(WORLD_W-2*INSET), y:INSET+v*(WORLD_H-2*INSET), r, reef, kind:reef ? "reef" : "slow"});
+  for (const [kind,u,v,w,h,dir] of [
+    ['wall',.36,.34,150,38], ['wall',.68,.58,38,160], ['wall',.57,.84,140,38],
+    ['screen',.44,.44,36,146], ['screen',.77,.39,156,36], ['screen',.27,.72,36,144],
+    ['current',.34,.45,180,70,1], ['current',.63,.29,185,72,-1], ['current',.68,.75,175,68,1]
+  ]) terrain.push({kind,x:INSET+u*(WORLD_W-2*INSET),y:INSET+v*(WORLD_H-2*INSET),w,h,dir});
+}
+function terrainOverlap(p,body,radius=body.r) {
+  if (!p.w) return hyp(body.x-p.x,body.y-p.y) < p.r+radius;
+  const dx=Math.max(0,Math.abs(body.x-p.x)-p.w/2);
+  const dy=Math.max(0,Math.abs(body.y-p.y)-p.h/2);
+  return hyp(dx,dy) < radius;
+}
+function blocksShot(p,b) {
+  return (p.reef || p.kind==='wall' || p.kind==='screen') && terrainOverlap(p,b,b.r ?? 4);
 }
 function touchReef(body) {
   for (const p of terrain) {
+    if (p.kind==='wall' && terrainOverlap(p,body)) {
+      const nx=clamp(body.x,p.x-p.w/2,p.x+p.w/2), ny=clamp(body.y,p.y-p.h/2,p.y+p.h/2);
+      const dx=body.x-nx, dy=body.y-ny, d=hyp(dx,dy);
+      if (d) { body.x=nx+dx/d*body.r; body.y=ny+dy/d*body.r; }
+      else if (p.w/2-Math.abs(body.x-p.x)<p.h/2-Math.abs(body.y-p.y))
+        body.x=p.x+(Math.sign(body.x-p.x)||1)*(p.w/2+body.r);
+      else body.y=p.y+(Math.sign(body.y-p.y)||1)*(p.h/2+body.r);
+    }
     if (!p.reef) continue;
     const dx=body.x-p.x, dy=body.y-p.y, d=hyp(dx,dy), limit=p.r+body.r;
     if (d < limit) {
@@ -673,6 +697,16 @@ function touchReef(body) {
 function drawTerrain(t) {
   ctx.save();
   for (const p of terrain) {
+    if (p.w) {
+      const color=p.kind==='wall' ? '#67adc4' : p.kind==='screen' ? '#ffbf72' : '#69edba';
+      ctx.fillStyle=color+'30'; ctx.strokeStyle=color; ctx.lineWidth=2;
+      ctx.fillRect(p.x-p.w/2,p.y-p.h/2,p.w,p.h);
+      if (p.kind==='screen') ctx.setLineDash([8,5]);
+      ctx.strokeRect(p.x-p.w/2,p.y-p.h/2,p.w,p.h); ctx.setLineDash([]);
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='bold 18px sans-serif'; ctx.fillStyle=color;
+      ctx.fillText(p.kind==='wall' ? '▰' : p.kind==='screen' ? '◇' : p.dir>0 ? '› › ›' : '‹ ‹ ‹',p.x,p.y);
+      continue;
+    }
     const {x,y,r,reef}=p;
     ctx.fillStyle=reef ? '#172a42' : 'rgba(126,76,200,.25)';
     ctx.strokeStyle=reef ? '#67adc4' : '#a183df';
@@ -3812,7 +3846,7 @@ function update(rdt, t) {
       }
     }
     b.x += b.vx * rdt; b.y += b.vy * rdt;
-    let dead = terrain.some(p => p.reef && hyp(b.x-p.x,b.y-p.y)<p.r+b.r) || b.t >= b.life || b.x < camX - 30 || b.x > camX + W + 30 || b.y < camY - 30 || b.y > camY + H + 30;
+    let dead = terrain.some(p => blocksShot(p,b)) || b.t >= b.life || b.x < camX - 30 || b.x > camX + W + 30 || b.y < camY - 30 || b.y > camY + H + 30;
     for (let j = hunters.length - 1; j >= 0 && !dead; j--) {
       const h = hunters[j];
       if (!vulnerable(h) || b.hit.includes(h)) continue;
@@ -3949,7 +3983,7 @@ function update(rdt, t) {
     const fz = freezeT > 0 ? .12 : 1;        // 时之牢：弹幕近乎凝固
     b.t += dt * fz;
     b.x += b.vx * dt * fz; b.y += b.vy * dt * fz;
-    let dead = terrain.some(p => p.reef && hyp(b.x-p.x,b.y-p.y)<p.r+b.r) || b.t >= b.life || b.x < camX - 40 || b.x > camX + W + 40 || b.y < camY - 40 || b.y > camY + H + 40;
+    let dead = terrain.some(p => blocksShot(p,b)) || b.t >= b.life || b.x < camX - 40 || b.x > camX + W + 40 || b.y < camY - 40 || b.y > camY + H + 40;
     for (const st of storms)
       if (hyp(b.x - st.x, b.y - st.y) < st.r) { dead = true; burst(b.x, b.y, 3, GLOW.orange, 100); break; }
     if (!dead && state === 'PLAY' && player.invuln <= 0 && hyp(b.x - player.x, b.y - player.y) < b.r + player.r) {
@@ -4190,6 +4224,11 @@ function drawMinimap(t) {
   // 视野框（裁剪在地图框内，别画出去）
   ctx.save();
   ctx.beginPath(); ctx.rect(x0, y0, mmW, mmH); ctx.clip();
+  for (const p of terrain) {
+    ctx.fillStyle=p.kind==='screen' ? '#ffbf72' : p.kind==='current' ? '#69edba' : p.kind==='slow' ? '#a183df' : '#67adc4';
+    if (p.w) ctx.fillRect(x0+(p.x-p.w/2)*sc,y0+(p.y-p.h/2)*sc,Math.max(1,p.w*sc),Math.max(1,p.h*sc));
+    else { ctx.beginPath(); ctx.arc(x0+p.x*sc,y0+p.y*sc,Math.max(1,p.r*sc),0,TAU); ctx.fill(); }
+  }
   // 可玩区域
   ctx.strokeStyle = 'rgba(255,61,127,.28)';
   ctx.strokeRect(x0 + INSET * sc, y0 + INSET * sc,
@@ -5246,7 +5285,7 @@ function loop(t) {
       let dy = (keys.s ? 1 : 0) - (keys.w ? 1 : 0) + (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
       const L = hyp(dx, dy);
       if (L > 0) {
-        const inField = terrain.some(p => !p.reef && hyp(player.x-p.x,player.y-p.y)<p.r);
+        const inField = terrain.some(p => p.kind==='slow' && hyp(player.x-p.x,player.y-p.y)<p.r);
         const sp = inField ? 350 : 560;
         player.x += dx / L * sp * dts;
         player.y += dy / L * sp * dts;
@@ -5281,7 +5320,11 @@ function loop(t) {
   demoTick(rdt);
   update(rdt, t);
   syncBossHealth();
-  if (state === 'PLAY') touchReef(player);
+  if (state === 'PLAY' && !paused && !choosing) {
+    const current=terrain.find(p => p.kind==='current' && terrainOverlap(p,player));
+    if (current) player.x=clamp(player.x+current.dir*210*Math.min(.033,rdt),INSET+12,WORLD_W-INSET-12);
+    touchReef(player);
+  }
   updateCamera();               // 冲刺/传送之后再一次框住光球：球永远在屏幕里
   render(t);
 }
