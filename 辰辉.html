@@ -62,7 +62,7 @@
   #energyFill{height:100%;width:0%;border-radius:3px;
     background:linear-gradient(90deg,var(--blue),var(--cyan));
     box-shadow:0 0 12px var(--cyan);transition:width .18s ease-out}
-  #energyMark{position:absolute;top:-3px;bottom:-3px;left:40%;width:1px;background:rgba(210,245,255,.5)}
+  #energyMark{position:absolute;top:-3px;bottom:-3px;left:30%;width:1px;background:rgba(210,245,255,.5)}
   #energyWrap .lbl{display:block;margin-top:9px}
 
   /* ---- 横幅 & 播报 ---- */
@@ -447,7 +447,7 @@
       <div class="gCard"><h4><span class="gi">◉</span>引力与光尘</h4>
         <p>移动鼠标吸引<b>光尘</b>入体：得分 + 充能。紫色光尘 ×3 价值。连续吸收堆<b>连击倍率</b>（最高 ×9），连击 15 触发<b class="gVio">狂热</b>：吸力 ×1.45、全收益 ×2，断连即失。</p></div>
       <div class="gCard"><h4><span class="gi">✦</span>能量经济</h4>
-        <p>能量只供<b>脉冲</b>与<b>刻印必杀</b>。来源：吸尘 / <b>擦弹</b>（贴身掠过敌人不触碰）/ 刃舞斩击 / 能量球。角色外圈即能量环，亮绿=可释放。</p></div>
+        <p>能量用于<b>脉冲、刻印和战术技能</b>。来源：吸尘 / <b>擦弹</b>（贴身掠过敌人不触碰）/ 刃舞斩击 / 能量球。角色外圈即能量环，亮绿=可释放。</p></div>
       <div class="gCard"><h4><span class="gi">◐</span>子弹时间</h4>
         <p>敌人贴脸、激光锁定、引信点燃时世界自动放缓——<b>只有你不慢</b>。声音会沉入水下般闷化。按住右键刻印时也会缓速。</p></div>
     </div>
@@ -455,21 +455,21 @@
     <div class="gSec">— 武 器 形 态（滚轮 / 1 2 3）—</div>
     <div class="gGrid">
       <div class="gCard"><h4><span class="gi">◎</span>脉冲</h4>
-        <p>耗 40 能量的全向冲击波：清弹幕、推光尘、多杀有连碎加成。会被承载者护盾<b>格挡</b>。</p></div>
+        <p>耗 30 能量的全向冲击波：清弹幕、推光尘、多杀有连碎加成。会被承载者护盾<b>格挡</b>。</p></div>
       <div class="gCard"><h4><span class="gi gGold">☾</span>刃舞 <span style="opacity:.5">150分解锁</span></h4>
-        <p>零耗能近战。每斩中一敌<b>+8 能量</b>；斩弹幕=<b class="gGold">弹反</b>；斩点燃的自爆蜂=<b>拆解</b>。0.8s 内三连挥，第三段为<b class="gGold">金色大横扫</b>（范围+27%、伤害×2）。</p></div>
+        <p>零耗能近战。每斩中一敌<b>+6 能量（每挥最多 18）</b>；斩弹幕=<b class="gGold">弹反</b>；斩点燃的自爆蜂=<b>拆解</b>。0.8s 内三连挥，第三段为<b class="gGold">金色大横扫</b>（范围+27%、伤害×2）。</p></div>
       <div class="gCard"><h4><span class="gi gVio">✛</span>星炮 <span style="opacity:.5">600分解锁</span></h4>
         <p>独立弹药 4 发（自动回填）。轻微追踪，对<b class="gVio">狙击手/承载者/幽灵/巨核</b>双倍伤害并<b>咬碎其外形</b>；300px 外击杀=狙杀奖励。</p></div>
     </div>
 
     <div class="gSec">— 刻 印 必 杀（按住右键画符，附无敌帧）—</div>
     <div class="gGrid">
-      <div class="gCard"><h4><span class="gi">─</span>流星斩 · 30 能量</h4>
+      <div class="gCard"><h4><span class="gi">─</span>流星斩 · 20 能量</h4>
         <p>快速画直线：轨迹化为巨刃，命中者被标记后<b>依次延迟处刑</b>（伤害 3）。0.55s 无敌——也是穿阵位移技。</p></div>
-      <div class="gCard"><h4><span class="gi gVio">○</span>引力奇点 · 38 能量</h4>
+      <div class="gCard"><h4><span class="gi gVio">○</span>引力奇点 · 34 能量</h4>
         <p>画圆：圆心生成 2.3s 漩涡，吸敌、<b>吞噬弹幕</b>、中心绞杀，并<b>替你吸收光尘</b>（80% 收益）。</p></div>
-      <div class="gCard"><h4><span class="gi">Z</span>天雷连环 · 25 能量</h4>
-        <p>画折线（<b>两个急转</b>即可，Z / N / W 形都行）：7 道天雷依次劈落最近敌人，麻痹 1.2s，每道命中<b>回 6 能量</b>。还能<b class="gPink">烧断丝网</b>。</p></div>
+      <div class="gCard"><h4><span class="gi">Z</span>天雷连环 · 30 能量</h4>
+        <p>画折线（<b>两个急转</b>即可，Z / N / W 形都行）：7 道天雷依次劈落最近敌人，麻痹 1.2s，每道命中<b>回 2 能量（每次施法最多 14）</b>。还能<b class="gPink">烧断丝网</b>。</p></div>
     </div>
 
     <div class="gSec">— 组 合 技 配 方（左下角实时显示）—</div>
@@ -1399,7 +1399,7 @@ try { best = +localStorage.getItem('ge_best') || 0; } catch (e) {}
 // ---------- 强化体系（含稀有度） ----------
 const BLADE_SPEED = 520;
 function defaultMods() {
-  return { attract: 1, energy: 1, pulseR: 1, pulseCost: 40, kill: 1,
+  return { attract: 1, energy: 1, pulseR: 1, pulseCost: 30, kill: 1,
            slowTS: .36, slowRange: 105, graze: 1, comboWin: 2, feverAt: 15,
            blade: false, moteCap: 0,
            orbitals: 0, bolt: false, nova: false, ghost: false, storm: false, crystal: false,
@@ -1423,7 +1423,7 @@ const UPGRADES = [
   { id:'nova',    rar:'c', ic:'✹', name:'湮灭回声', desc:'受击时自动释放\n一次免费冲击波', stack:false, fx:m=>m.nova=true },
   { id:'crystal', rar:'c', ic:'❄', name:'时间晶格', desc:'子弹时间中：\n吸力翻倍 + 能量回充', stack:false, fx:m=>m.crystal=true },
   { id:'pulser',  rar:'r', ic:'◎', name:'湮灭波形', desc:'冲击波半径 +25%\n击杀得分 +50%', stack:true, fx:m=>{m.pulseR*=1.25;m.kill*=1.5;} },
-  { id:'cost',    rar:'r', ic:'⚡', name:'超导回路', desc:'冲击波耗能 40 → 26', stack:false, fx:m=>m.pulseCost=26 },
+  { id:'cost',    rar:'r', ic:'⚡', name:'超导回路', desc:'冲击波耗能 降低 10（最低 12）', stack:false, fx:m=>m.pulseCost=Math.max(12,m.pulseCost-10) },
   { id:'slow',    rar:'r', ic:'◐', name:'时滞领域', desc:'子弹时间更慢\n触发范围 +45%', stack:false, fx:m=>{m.slowTS=.22;m.slowRange=150;} },
   { id:'chain',   rar:'r', ic:'∞', name:'狂热延续', desc:'连击窗口 +60%\n狂热阈值 15 → 10', stack:false, fx:m=>{m.comboWin=3.2;m.feverAt=10;} },
   { id:'orb',     rar:'r', ic:'✧', name:'轨道棱晶', desc:'获得一枚环绕棱晶\n撞击敌人（最多 4）', stack:true, can:()=>mods.orbitals<4, fx:m=>m.orbitals++ },
@@ -2119,8 +2119,8 @@ function bladeSlash() {
     }
   }
   if (hits > 0) {
-    energy = Math.min(100, energy + Math.min(hits, 4) * 8);   // 斩击回能
-    addFloat(player.x, player.y - 30, '+' + Math.min(hits, 4) * 8 + ' 能量', 'rgba(140,255,235,', 12);
+    energy = Math.min(100, energy + Math.min(hits, 3) * 6);   // 斩击回能
+    addFloat(player.x, player.y - 30, '+' + Math.min(hits, 3) * 6 + ' 能量', 'rgba(140,255,235,', 12);
   }
   for (let i = bullets.length - 1; i >= 0; i--) {              // 完美弹反：弹幕化为己方飞弹
     const b = bullets[i];
@@ -2248,10 +2248,11 @@ function useUtility(repair) {
   rings.push({x:player.x,y:player.y,r:8,maxR:repair ? 65 : 200,alpha:.9,speed:480,color:repair ? "rgba(110,255,180," : "rgba(130,215,255,",warp:false,w:3});
 }
 function castGesture(g) {
-  gestureCd = .7 * mods.cdMult;
+  if (gestureCd > 0) return;
   const gm = 1 - .08 * (meta.sigil || 0);    // 刻印亲和：耗能减免
   if (g.type === 'line') {
-    if (!spendEnergy(Math.round(30 * gm))) return;
+    if (!spendEnergy(Math.round(20 * gm))) return;
+    gestureCd = .7 * mods.cdMult;
     achStats.gestures++; checkAch();
     player.invuln = Math.max(player.invuln, .55);   // 无敌帧：也是穿阵位移技
     // 流星斩·贯空：沿刻印轨迹的巨刃，命中者依次延迟处刑
@@ -2280,7 +2281,8 @@ function castGesture(g) {
     if (n > 0) registerSkillHit('line');
     rings.push({ x: (x1 + x2) / 2, y: (y1 + y2) / 2, r: 10, maxR: 200, alpha: .7, speed: 640, color: 'rgba(230,250,255,', warp: true, w: 2.5 });
   } else if (g.type === 'zig') {
-    if (!spendEnergy(Math.round(25 * gm))) return;
+    if (!spendEnergy(Math.round(30 * gm))) return;
+    gestureCd = .7 * mods.cdMult;
     achStats.gestures++; checkAch();
     player.invuln = Math.max(player.invuln, .35);
     // 天雷连环：至多 5 道，依次劈落最近的敌人
@@ -2295,7 +2297,8 @@ function castGesture(g) {
     }
     if (tg.length > 0) registerSkillHit('zig');
   } else if (g.type === 'circle') {
-    if (!spendEnergy(Math.round(38 * gm))) return;
+    if (!spendEnergy(Math.round(34 * gm))) return;
+    gestureCd = .7 * mods.cdMult;
     achStats.gestures++; checkAch();
     player.invuln = Math.max(player.invuln, .35);
     sfx.vortex();
@@ -3737,7 +3740,7 @@ function update(rdt, t) {
           if (hyp(h.x - th.x, h.y - th.y) < 74 + h.r) {
             h.stun = Math.max(h.stun, 1.2);
             damageEnemy(j, 'pulse', 1);
-            energy = Math.min(100, energy + 6);   // 雷击回能
+            if (!th.refunded) { energy = Math.min(100, energy + 2); th.refunded = true; }
           }
         }
         for (let wi = webs.length - 1; wi >= 0; wi--)   // 天雷烧断丝网
