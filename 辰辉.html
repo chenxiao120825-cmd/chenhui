@@ -810,7 +810,9 @@ function expTick(dt){
     return true;
   }
   if(!e.drop && elapsed>=e.nextDrop){
-    const id=e.focus;if(id && (e.bag[id]||0)<5){
+    const remaining=Object.keys(EXP_ITEMS).filter(id=>(e.bag[id]||0)<5);
+    if(remaining.length){
+      const id=remaining[Math.floor(rand(0,remaining.length))];
       const near=expOpenPoints().filter(q=>{const p=expTargetPoint(q),d=hyp(p.x-player.x,p.y-player.y);return d>80&&d<Math.max(650,W*.7)});
       const pool=near.length?near:[track];e.drop={...pool[Math.floor(rand(0,pool.length))],id,charge:0,armed:false};banner('碎片信号出现 · 寻找金青光柱');
     }
@@ -829,12 +831,12 @@ function expTick(dt){
       const id=e.drop.id;e.bag[id]=(e.bag[id]||0)+1;e.drop=null;e.nextDrop=elapsed+rand(15,23);
       if(e.bag[id]===5){
         if(Object.hasOwn(unlocked,id)){unlocked[id]=true;if(!weapon)weapon=id;syncWeapons();}
-        shout(EXP_ITEMS[id]+' · 合成');e.focus=['pulse','line','blade','circle','cannon','zig','dash','push','repair'].find(k=>e.bag[k]!==5);
+        shout(EXP_ITEMS[id]+' · 合成');
       }else banner(EXP_ITEMS[id]+'碎片 '+e.bag[id]+'/5');
     }
   }
   const warning=mode===4 && e.age%12>=7?' · 暗蚀将至／进入紫灯圈':mode===0 && e.age%6>=3.5?' · 震区预警':'';
-  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\nT 切换搜寻 · '+(EXP_ITEMS[e.focus]||'全部合成')+'　'+(e.bag[e.focus]||0)+'/5'+(e.drop?' · ◆'+EXP_ITEMS[e.drop.id]+'已出现':'')+'\n'+Object.entries(e.bag).map(([k,n])=>EXP_ITEMS[k]+' '+n+'/5').join('　');
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片')+'\n'+Object.entries(e.bag).map(([k,n])=>EXP_ITEMS[k]+' '+n+'/5').join('　');
   $('expHud').classList.toggle('urgent',e.remaining<=10);
   if($('expHud').textContent!==msg)$('expHud').textContent=msg;
   return false;
@@ -2560,7 +2562,7 @@ function doDash() {
 
 function basicAttack() {
   if(survival)return;
-  if(expedition && !weapon){expLocked(expedition.focus||'pulse');return;}
+  if(expedition && !weapon){if(elapsed>=expedition.hintAt){banner('收集同名武器碎片 5 枚即可装备');expedition.hintAt=elapsed+1.5;}return;}
   if (attackCd > 0) return;
   achRun.mask |= weapon === 'pulse' ? 1 : weapon === 'blade' ? 2 : 4;
   const wN = (achRun.mask & 1 ? 1 : 0) + (achRun.mask & 2 ? 1 : 0) + (achRun.mask & 4 ? 1 : 0);
@@ -2942,7 +2944,7 @@ function startGame(extreme=false) {
   runDifficulty=survival?'hard':extreme===true?'normal':diffKey;
   if(extreme===true){
     const order=[0,1,2,3,4];for(let i=4;i>0;i--){const j=Math.floor(rand(0,i+1));[order[i],order[j]]=[order[j],order[i]];}
-    expedition={order,stage:0,bag:{},focus:'pulse',nextDrop:rand(15,23),hintAt:0};
+    expedition={order,stage:0,bag:{},nextDrop:rand(15,23),hintAt:0};
   }
   buildTerrain(); document.body.classList.toggle('expedition',!!(expedition||survival));document.body.classList.toggle('pacifist',!!survival);
   $('expHud').hidden=!(expedition||survival);$('expHud').classList.remove('urgent');$('expHud').textContent='';$('extremeResult').hidden=true;
@@ -3076,11 +3078,6 @@ $('difficultySelect').onclick=e=>{
 };
 $('survivalBtn').onclick=()=>startGame('survival');
 $('extremeBtn').onclick=()=>startGame(true);
-addEventListener('keydown',ev=>{
-  if(!expedition||state!=='PLAY'||paused||ev.repeat||ev.key.toLowerCase()!=='t')return;
-  const pool=Object.keys(EXP_ITEMS).filter(id=>expedition.bag[id]!==5);
-  if(pool.length)expedition.focus=pool[(pool.indexOf(expedition.focus)+1)%pool.length];
-});
 // ---- 局外商店：回响结晶 & 永久升级 ----
 const META_ITEMS = [
   { id: 'life',   ic: '❍', name: '相位续存', desc: '初始生命 +1', max: 2, cost: [80, 220] },
