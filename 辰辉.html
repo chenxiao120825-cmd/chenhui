@@ -539,7 +539,7 @@
     <div class="gSec">— 移 动 —</div>
     <div class="gGrid" style="grid-template-columns:1fr">
       <div class="gCard">
-        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></div><div class="hs">E 排斥波（22 能量，冷却 5 秒）；R 修复一格生命（45 能量，冷却 12 秒）。两招共享冷却。前后左右推光球（方向键也行），速度恒定。地图比屏幕大 2.6 倍，镜头跟着你滚，球永远在画面里，右下角是战术地图。</div></div>
+        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></div><div class="hs">E 排斥波（22 能量，冷却 5 秒）；R 修复一格生命（45 能量，冷却 12 秒）。两招共享冷却。前后左右推光球（方向键也行），速度恒定。地图宽高各为屏幕的 3.5 倍，镜头跟着你滚，球永远在画面里，右下角是战术地图。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">J</span></div><div class="hs">攻击：自动瞄准最近的敌人，没敌人就按上次朝向打。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">U</span><span class="kbd">I</span><span class="kbd">O</span></div><div class="hs">三种刻印：<b>U</b> 流星斩（朝瞄准方向）· <b>I</b> 引力奇点（身前）· <b>O</b> 天雷。都要能量。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">空格</span></div><div class="hs">冲刺：朝瞄准方向瞬移，带无敌帧。</div></div>
@@ -636,7 +636,7 @@ function distRay(ox, oy, dx, dy, px, py, len) {
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1;
-const WORLD_SCALE = 2.6;           // 大地图：世界 = 屏幕的 2.6 倍
+const WORLD_SCALE = 3.5;           // 大地图：世界宽高各为视口的 3.5 倍
 let WORLD_W = 0, WORLD_H = 0;
 let INSET = 0;                     // 地图四边的禁区宽度：球进不去，镜头也不会越界
 let camX = 0, camY = 0;            // 相机在世界里的左上角
@@ -2537,7 +2537,7 @@ function gameOver() {
   }
   hudEl.classList.remove('on');
   dangerEl.style.opacity = 0;
-  glyphs.set('回响消散', 'ECHO  FADED');
+  glyphs.set('辉光消散', 'GLOW  FADED');
   setTimeout(() => $('gameover').classList.add('on'), 1100);
 }
 $('startBtn').addEventListener('click', startGame);
