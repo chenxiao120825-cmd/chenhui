@@ -801,7 +801,7 @@ function expLocked(id){
 }
 function expTick(dt){
   const e=expedition,m=expMap();e.age+=dt;e.remaining-=dt;
-  if(e.remaining<=0){score=displayScore=0;lives=0;e.outcome='撤离超时 · 得分清零';gameOver();return true;}
+  if(e.remaining<=0){score=displayScore=0;lives=0;e.outcome=(e.exit?'撤离超时':'任务超时')+' · 得分清零';gameOver();return true;}
   const mode=e.order[e.stage];
   if(mode===1) for(const p of terrain)if(p.baseDir)p.dir=p.baseDir*(Math.floor(e.age/6)%2?-1:1);
   if(mode===2) for(const p of terrain)if(p.gate)p.kind=Math.floor(e.age/5)%2?'screen':'wall';
@@ -817,7 +817,7 @@ function expTick(dt){
       else e.charge=Math.max(0,e.charge-dt*.5);
       if(e.charge>=m.hold){
         e.nodes++;e.charge=0;e.delay=rand(10,19);score+=120;player.invuln=Math.max(player.invuln,1.5);
-        if(e.nodes===3){e.exit=true;e.remaining=40;banner('撤离门已开启 · 请在 40 秒内撤离');}
+        if(e.nodes===3){e.exit=true;e.remaining+=40;banner('金色撤离门已开启 · 可立即进门');}
       }
     }
   }else if(hyp(player.x-target.x,player.y-target.y)<64){
@@ -851,7 +851,8 @@ function expTick(dt){
     }
   }
   const warning=mode===4 && e.age%12>=7?' · 暗蚀将至／进入紫灯圈':mode===0 && e.age%6>=3.5?' · 震区预警':'';
-  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
+  const clock=e.exit && e.age<120 ? '提前撤离 · '+Math.ceil(120-e.age)+'秒后进入最后40秒' : (e.exit?'最后撤离 ':'任务剩余 ')+Math.ceil(e.remaining)+'秒';
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+clock+'\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
   $('expHud').classList.toggle('urgent',e.remaining<=10);
   if($('expStatus').textContent!==msg)$('expStatus').textContent=msg;
   return false;
@@ -3053,7 +3054,7 @@ function gameOver() {
   $('goRank').style.color = RANKS[bestRank].c;
   // 结算回响结晶（难度加权）
   const crysM = runDifficulty === 'hard' ? 1.3 : runDifficulty === 'easy' ? .8 : 1;
-  const gain = expedition?.outcome?.startsWith('撤离超时') ? 0 : Math.max(1, Math.round((score / 250 + wave * 3 + bestRank * 4) * crysM));
+  const gain = expedition?.outcome?.endsWith('得分清零') ? 0 : Math.max(1, Math.round((score / 250 + wave * 3 + bestRank * 4) * crysM));
   crystals += gain;
   saveMeta();
   $('goCrys').textContent = '+' + gain;
