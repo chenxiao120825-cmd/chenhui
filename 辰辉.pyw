@@ -1,7 +1,7 @@
 """
-奇点残响 · SINGULARITY ECHO —— 独立窗口版
+辰辉 · CHEN HUI —— 独立窗口版
 
-用法：pythonw 奇点残响.pyw [页面文件名]
+用法：pythonw 辰辉.pyw [页面文件名]
 双击「开始游戏.bat」即可。
 """
 import os
@@ -12,8 +12,8 @@ import time
 
 import webview
 
-DEFAULT = "奇点残响-二代.html"
-ALT = "奇点残响-键盘版.html"
+DEFAULT = "辰辉.html"
+ALT = "辰辉-键盘版.html"
 
 
 def find_html(here, name=None):
@@ -34,11 +34,11 @@ def main():
     html = find_html(here, want) or find_html(os.path.dirname(os.path.abspath(__file__)), want)
     if not html:
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0, "没找到游戏页面文件。", "奇点残响", 0x30)
+        ctypes.windll.user32.MessageBoxW(0, "没找到游戏页面文件。", "辰辉", 0x30)
         return
 
     try:
-        run_dir = os.path.join(tempfile.gettempdir(), "SingularityEchoRun")
+        run_dir = os.path.join(tempfile.gettempdir(), "ChenHuiRun")
         os.makedirs(run_dir, exist_ok=True)
         fresh = os.path.join(run_dir, "game-%d.html" % int(time.time() * 1000))
         shutil.copyfile(html, fresh)
@@ -46,7 +46,7 @@ def main():
     except Exception:
         pass
 
-    title = "奇点残响 · 键盘版" if "键盘" in (want or html) else "奇点残响 · SINGULARITY ECHO"
+    title = "辰辉 · 键盘版" if "键盘" in (want or html) else "辰辉 · CHEN HUI"
     kwargs = dict(width=1280, height=800, min_size=(960, 600),
                   background_color="#04050c", text_select=False, easy_drag=False)
     try:

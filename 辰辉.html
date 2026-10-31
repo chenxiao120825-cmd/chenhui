@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>奇点残响 · 二代</title>
+<title>辰辉</title>
 <style>
   :root{
     --cyan:#66f7ff; --blue:#4f8cff; --pink:#ff3d7f; --violet:#b26bff; --gold:#ffd25a;
@@ -613,7 +613,7 @@
 <script>
 "use strict";
 /* ================================================================
-   奇点残响 SINGULARITY ECHO —— v3
+   辰辉 CHEN HUI —— v3
    增益：稀有度卡池 + 轨道棱晶/静电链爪/湮灭回声/回响分身/磁暴余威/时间晶格
    敌人：自爆蜂 / 承载者(双层血) / 相位幽灵 / 巨核 Boss(弹幕) + HP/硬直体系
    互动：击杀顿帧 · 连击倒计时条 · 中央播报 · 光标状态 · 危险红晕
@@ -2314,7 +2314,7 @@ function tryBolt() {
 
 // ---------- 粒子文字 ----------
 const glyphs = {
-  parts: [], text: '奇点残响', sub: 'S I N G U L A R I T Y   E C H O',
+  parts: [], text: '辰辉', sub: 'C H E N   H U I',
   set(text, sub) { this.text = text; this.sub = sub; this.refresh(); },
   refresh() {
     if (state === 'PLAY') { this.parts = []; return; }
@@ -5019,7 +5019,7 @@ function demoToTitle(msg) {
   slashes = []; vortices = []; thunders = []; lineFxs = []; golden = null;
   $('title').classList.add('on'); $('gameover').classList.remove('on'); $('choose').classList.remove('on');
   hudEl.classList.remove('on'); dangerEl.style.opacity = 0; $('bossName').classList.remove('on');
-  glyphs.set('奇点残响', 'SINGULARITY  ECHO');
+  glyphs.set('辰辉', 'CHEN HUI');
   if (msg) banner(msg);
 }
 function demoStop() {
