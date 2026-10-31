@@ -206,7 +206,7 @@
   #difficultySelect button{margin:6px} body.pacifist #weapons,body.pacifist #energyWrap,body.pacifist #ultChip{display:none}
   #fragmentBars{margin-top:5px;padding-top:4px;border-top:1px solid #ffe2aa44;font-size:11px;color:#cbe5ed}
   .fragRow{display:grid;grid-template-columns:4.5em 1fr 3em;align-items:center;gap:5px}
-  .fragTrack{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+  .fragTrack{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
   .fragTrack i{height:6px;background:#384552;border-radius:1px}
   .fragTrack .lit{background:#71ede1}.fragRow.complete .lit{background:#ffd278}
   #hazardClock{font-weight:700;font-variant-numeric:tabular-nums;color:#bceeff}
@@ -428,7 +428,7 @@
   <button class="btn magnetic" id="normalBtn">普通模式</button>
   <p>迎战敌潮，组合武器与契约。</p>
   <button class="btn magnetic" id="extremeBtn">极限远征 · 五境撤离</button>
-  <p>空手出发，收集碎片，在限时内穿越五境。</p>
+  <p>三武器开局，集齐三枚同名碎片强化武器或解锁技能。</p>
   <button class="btn magnetic" id="survivalBtn">吊炸天 · 禁武生存</button><p>全程禁攻，无碎片。完成十项任务或生存二十分钟。</p>
   <button class="btn magnetic" id="modeBack">返回</button>
 </div>
@@ -732,14 +732,19 @@ function drawTrial(mini,x0=0,y0=0,sc=1){
   ctx.save();ctx.strokeStyle=ctx.fillStyle='#ffda76';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,mini?5:80,0,TAU);ctx.stroke();ctx.textAlign='center';ctx.fillText('⚑',x,y);ctx.restore();
 }
 const EXP_ITEMS={pulse:'脉冲',blade:'刃舞',cannon:'星炮',line:'流星斩',circle:'引力奇点',zig:'天雷连环',dash:'冲刺',push:'排斥波',repair:'应急修复'};
+const EXP_RECIPE=3;
+const expWeapon=id=>id==='pulse'||id==='blade'||id==='cannon';
+const expPower=id=>1+.25*Math.floor((expedition?.bag[id]||0)/EXP_RECIPE);
 function syncFragmentBars(){
   const box=$('fragmentBars');
   box.hidden=!expedition;
   if(!expedition){box.replaceChildren();return;}
   box.innerHTML='<strong>碎片收集</strong>'+Object.entries(EXP_ITEMS).map(([id,name])=>{
-    const n=expedition.bag[id]||0;
-    const cells=Array.from({length:5},(_,i)=>i<n?'<i class="lit"></i>':'<i></i>').join('');
-    return '<div class="fragRow '+(n===5?'complete':'')+'"><span>'+name+'</span><span class="fragTrack" aria-hidden="true">'+cells+'</span><span>'+(n===5?'已合成':n+'/5')+'</span></div>';
+    const total=expedition.bag[id]||0, w=expWeapon(id);
+    const n=w?total%EXP_RECIPE:total;
+    const label=w?name+' +'+Math.floor(total/EXP_RECIPE):name;
+    const cells=Array.from({length:EXP_RECIPE},(_,i)=>i<n?'<i class="lit"></i>':'<i></i>').join('');
+    return '<div class="fragRow '+(n===EXP_RECIPE?'complete':'')+'"><span>'+label+'</span><span class="fragTrack" aria-hidden="true">'+cells+'</span><span>'+(n===EXP_RECIPE?'已合成':n+'/'+EXP_RECIPE)+'</span></div>';
   }).join('');
 }
 const EXP_MAPS=[
@@ -797,8 +802,8 @@ function newExpMap(){
 }
 function expLocked(id){
   if(survival)return true;
-  if(!expedition||expedition.bag[id]===5)return false;
-  if(elapsed>=expedition.hintAt){banner(EXP_ITEMS[id]+' · 同名碎片 '+(expedition.bag[id]||0)+'/5');expedition.hintAt=elapsed+1.5;}
+  if(!expedition||expWeapon(id)||expedition.bag[id]>=EXP_RECIPE)return false;
+  if(elapsed>=expedition.hintAt){banner(EXP_ITEMS[id]+' · 同名碎片 '+(expedition.bag[id]||0)+'/'+EXP_RECIPE);expedition.hintAt=elapsed+1.5;}
   return true;
 }
 function expTick(dt){
@@ -831,7 +836,7 @@ function expTick(dt){
     return true;
   }
   if(!e.drop && elapsed>=e.nextDrop){
-    const remaining=Object.keys(EXP_ITEMS).filter(id=>(e.bag[id]||0)<5);
+    const remaining=Object.keys(EXP_ITEMS).filter(id=>expWeapon(id)||(e.bag[id]||0)<EXP_RECIPE);
     if(remaining.length){
       const id=remaining[Math.floor(rand(0,remaining.length))];
       const near=expOpenPoints().filter(q=>{const p=expTargetPoint(q),d=hyp(p.x-player.x,p.y-player.y);return d>80&&d<Math.max(650,W*.7)});
@@ -850,10 +855,9 @@ function expTick(dt){
     e.drop.charge=clamp(e.drop.charge+(close?dt:-dt*.5),0,3);
     if(e.drop.charge>=3){
       const id=e.drop.id;e.bag[id]=(e.bag[id]||0)+1;syncFragmentBars();e.drop=null;e.nextDrop=elapsed+rand(15,23);
-      if(e.bag[id]===5){
-        if(Object.hasOwn(unlocked,id)){unlocked[id]=true;if(!weapon)weapon=id;syncWeapons();}
-        shout(EXP_ITEMS[id]+' · 合成');
-      }else banner(EXP_ITEMS[id]+'碎片 '+e.bag[id]+'/5');
+      if(e.bag[id]%EXP_RECIPE===0){
+        shout(EXP_ITEMS[id]+(expWeapon(id)?' · 威力 +'+(e.bag[id]/EXP_RECIPE*25)+'%':' · 合成'));
+      }else banner(EXP_ITEMS[id]+'碎片 '+(e.bag[id]%EXP_RECIPE)+'/'+EXP_RECIPE);
     }
   }
   const hud=$('hazardClock');
@@ -872,7 +876,7 @@ function expTick(dt){
   hud.hidden=false;hud.className=active?'active':m.period && seconds<=5?'warn':'';
   if(hud.textContent!==text)hud.textContent=text;
   const clock=e.exit && e.age<120 ? '提前撤离 · '+Math.ceil(120-e.age)+'秒后进入最后40秒' : (e.exit?'最后撤离 ':'任务剩余 ')+Math.ceil(e.remaining)+'秒';
-  const msg=(e.stage+1)+'/5 '+m.name+'　'+clock+'\n'+m.rule+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':Object.values(e.bag).filter(n=>n===5).length===Object.keys(EXP_ITEMS).length?'全部合成':'等待随机碎片');
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+clock+'\n'+m.rule+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\n'+(e.drop?'◆ '+EXP_ITEMS[e.drop.id]+'碎片已出现':'等待随机碎片');
   $('expHud').classList.toggle('urgent',e.remaining<=10);
   if($('expStatus').textContent!==msg)$('expStatus').textContent=msg;
   return false;
@@ -2382,7 +2386,7 @@ function mergePair() {
 }
 
 // ---------- 冲击波 ----------
-function castPulse(R) {
+function castPulse(R, damage=1) {
   if(survival)return;
   sfx.pulse();
   shake = Math.max(shake, 7); slowHold = .18;
@@ -2432,7 +2436,7 @@ function castPulse(R) {
         sfx.tick();
         continue;
       }
-      if (damageEnemy(i, 'wave', chain + 1)) chain++;
+      if (damageEnemy(i, 'wave', chain + 1, damage)) chain++;
     }
   }
   if (chain >= 3) { shout(chain + ' 连 碎'); impactFlash(.3); }
@@ -2452,7 +2456,7 @@ function firePulse() {
   }
   energy -= cost;
   pushCombo('pulse');
-  castPulse(pulseRadius());
+  castPulse(pulseRadius(), expPower("pulse"));
 }
 
 // ---------- 武器系统 & 手势刻印 ----------
@@ -2604,7 +2608,6 @@ function doDash() {
 
 function basicAttack() {
   if(survival)return;
-  if(expedition && !weapon){if(elapsed>=expedition.hintAt){banner('收集同名武器碎片 5 枚即可装备');expedition.hintAt=elapsed+1.5;}return;}
   if (attackCd > 0) return;
   achRun.mask |= weapon === 'pulse' ? 1 : weapon === 'blade' ? 2 : 4;
   const wN = (achRun.mask & 1 ? 1 : 0) + (achRun.mask & 2 ? 1 : 0) + (achRun.mask & 4 ? 1 : 0);
@@ -2643,7 +2646,7 @@ function bladeSlash() {
         continue;
       }
       h.vx += (h.x - player.x) / d * (fin ? 700 : 520); h.vy += (h.y - player.y) / d * (fin ? 700 : 520);
-      if (damageEnemy(i, 'blade', chain + 1, DMG)) chain++;
+      if (damageEnemy(i, 'blade', chain + 1, DMG*expPower('blade'))) chain++;
     }
   }
   if (hits > 0) {
@@ -2704,7 +2707,6 @@ function unlockWeapon(id, label) {
   syncWeapons();
 }
 function unlockHint(id) {
-  if(expedition)return "收集同名碎片 "+(expedition.bag[id]||0)+"/5";
   return id === 'blade' ? '100 分或生存 12 秒' : '450 分或生存 35 秒';
 }
 function syncWeapons() {
@@ -2996,7 +2998,7 @@ function startGame(extreme=false) {
   score = 0; displayScore = 0; combo = 0; bestCombo = 0; comboTimer = 0;
   utilityReadyAt = 0;
   lives = 3 + (meta.life || 0);              // 局外：相位续存
-  energy = 25 * (meta.start || 0);           // 局外：预充能
+  energy = Math.max(expedition ? 30 : 0, 25 * (meta.start || 0));           // 局外：预充能
   elapsed = 0; spawnTimer = 2.2;
   fever = false; kills = 0; wave = 0;
   surgeTimer = 20; surgeWarn = 0;
@@ -3009,8 +3011,8 @@ function startGame(extreme=false) {
   shards = []; flares = []; dmgDirs = [];
   killStreak = 0; killStreakT = 0; lastPopScore = 0; feverGlow = 0;
   slowfxEl.style.opacity = 0;
-  weapon = expedition || survival ? null : 'pulse';
-  unlocked = expedition || survival ? {pulse:false,blade:false,cannon:false} : { pulse: true, blade: !!meta.wBlade, cannon: !!meta.wCan };   // 局外：武器烙印
+  weapon = survival ? null : 'pulse';
+  unlocked = survival ? {pulse:false,blade:false,cannon:false} : expedition ? {pulse:true,blade:true,cannon:true} : { pulse: true, blade: !!meta.wBlade, cannon: !!meta.wCan };   // 局外：武器烙印
   attackCd = 0; gestureCd = 0; inscribing = false; inscribePath = [];
   playerBolts = []; slashes = []; vortices = []; thunders = []; lineFxs = [];
   skillChain = 0; skillChainT = 0; lastSkillType = ''; aimTarget = null;
@@ -4387,7 +4389,7 @@ function update(rdt, t) {
         // 克制：对远程 / 重甲双倍伤害
         const heavy = h.kind === 'sniper' || h.kind === 'warden' || h.kind === 'phantom' || h.kind === 'overcore';
         const far = hyp(h.x - player.x, h.y - player.y) > 300;
-        const killed = damageEnemy(j, 'bolt', 1, (heavy ? 2 : 1)+(b.charge||0), b.reflected ? (b.scale||1) : mods.cannonPower);
+        const killed = damageEnemy(j, 'bolt', 1, ((heavy ? 2 : 1)+(b.charge||0))*expPower(b.reflected?'blade':'cannon'), b.reflected ? (b.scale||1) : mods.cannonPower);
         if (mods.focus && far && !b.reflected && !killed && h.kind !== 'overcore') h.stun = Math.max(h.stun, .5+.08*rankOf("focus"));
         if (killed && far && !b.reflected) {           // 狙杀奖励
           score += 40;
