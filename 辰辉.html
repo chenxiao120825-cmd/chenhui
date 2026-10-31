@@ -429,7 +429,7 @@
   <p>迎战敌潮，组合武器与契约。</p>
   <button class="btn magnetic" id="extremeBtn">极限远征 · 五境撤离</button>
   <p>三武器开局，集齐三枚同名碎片强化武器或解锁技能。</p>
-  <button class="btn magnetic" id="survivalBtn">吊炸天 · 禁武生存</button><p>全程禁攻，无碎片。完成十项任务或生存二十分钟。</p>
+  <button class="btn magnetic" id="survivalBtn">吊炸天 · 禁武生存</button><p>全程禁攻，无碎片。完成十项任务，并存活满十分钟。</p>
   <button class="btn magnetic" id="modeBack">返回</button>
 </div>
 <div class="panel" id="difficultySelect"><h2>普通模式 · 选择难度</h2>
@@ -684,9 +684,10 @@ const CAM_SAFE = 46;               // 兜底：光球与屏幕边缘的最小距
 const terrain = [];
 let expedition=null, survival=null, runDifficulty='normal';
 const PASSIVES=[['轻步','移动速度 +5%'],['牵引','光尘吸引范围 +12%'],['余护','受伤保护延长 0.25 秒'],['越障','减速场中移动速度 +8%']];
+const SURVIVAL_SECONDS=600;
 const TRIALS=[
- ['拾荒起步','dust',8],['投递信标','reach',1],['避开追兵','safe',18],['两站接力','reach',2],['补给巡回','dust',22],
- ['守住观测点','hold',8],['三站穿越','reach',3],['完好护送','safe',35],['深区勘探','dust',32],['最终撤离','hold',12]
+ ['拾荒起步','dust',16],['投递信标','reach',2],['避开追兵','safe',30],['四站接力','reach',4],['补给巡回','dust',36],
+ ['守住观测点','hold',12],['五站穿越','reach',5],['完好护送','safe',50],['深区勘探','dust',50],['最终撤离','hold',18]
 ];
 function trialTarget(){
   const here=player;
@@ -705,29 +706,35 @@ function passiveChoice(){
   $('choose').classList.add('on');
 }
 function survivalTick(dt){
-  const v=survival,[name,type,goal]=TRIALS[v.task];
-  if(elapsed>=1200){v.outcome='生存二十分钟 · 通关';gameOver();return true;}
+  const v=survival,trial=TRIALS[v.task];
+  const [,type,goal]=trial || [];
   if(type==='safe'){if(v.hits!==achRun.hits){v.progress=0;v.hits=achRun.hits;}else v.progress+=dt;}
   if(type==='hold'||type==='reach'){
     const q=expTargetPoint(v.target),near=hyp(player.x-q.x,player.y-q.y)<80;
     if(near && type==='reach'){v.progress++;v.target=trialTarget();}
     if(type==='hold')v.progress=Math.max(0,v.progress+(near?dt:-dt*.4));
   }
-  const finished=v.progress>=goal;
+  const finished=!!trial && v.progress>=goal;
   if(finished){
     v.task++;score+=150;
-    if(v.task===TRIALS.length){v.outcome='十项任务完成 · 通关';gameOver();return true;}
-    v.progress=0;v.hits=achRun.hits;v.target=trialTarget();banner('任务完成 · '+TRIALS[v.task][0]);
+    v.progress=0;v.hits=achRun.hits;
+    if(TRIALS[v.task]){v.target=trialTarget();banner('任务完成 · '+TRIALS[v.task][0]);}
+    else banner('十项任务完成 · 坚持到 10:00');
   }
-  const [nextName,nextType,nextGoal]=TRIALS[v.task];
-  $('expStatus').textContent='吊炸天 · 禁武生存　'+Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0')+' / 20:00\n任务 '+(v.task+1)+'/10　'+nextName+' '+Math.floor(v.progress)+'/'+nextGoal+'\n'+({dust:'收集光尘',safe:'连续无伤（秒）',reach:'前往黄色旗标',hold:'在旗标旁驻守（秒）'}[nextType])+'\n'+PASSIVES.map(([n],i)=>n+' '+v.level[i]+'/5').join(' · ');
+  if(v.task===TRIALS.length && elapsed>=SURVIVAL_SECONDS && lives>0){
+    v.outcome='十项任务完成 · 存活满十分钟 · 通关';gameOver();return true;
+  }
+  const next=TRIALS[v.task];
+  const clock=Math.floor(elapsed/60)+':'+String(Math.floor(elapsed%60)).padStart(2,'0');
+  const taskText=next?next[0]+' '+Math.floor(v.progress)+'/'+next[2]+' · '+({dust:'收集光尘',safe:'连续无伤（秒）',reach:'前往黄色旗标',hold:'驻守旗标（秒）'}[next[1]]):'全部完成，继续存活';
+  $('expStatus').textContent='吊炸天 · 禁武生存　'+clock+' / 10:00'+(elapsed>=SURVIVAL_SECONDS?' ✓':'')+'\n已完成 '+v.task+'/10　'+taskText+'\n'+PASSIVES.map(([n],i)=>n+' '+v.level[i]+'/5').join(' · ');
   if(finished)v.points++;
   if(elapsed>=v.nextPoint){v.nextPoint+=60;v.points++;}
   if(v.points>0){v.points--;passiveChoice();}
   return choosing;
 }
 function drawTrial(mini,x0=0,y0=0,sc=1){
-  if(!survival||state!=='PLAY'||!['reach','hold'].includes(TRIALS[survival.task][1]))return;
+  if(!survival||state!=='PLAY'||!['reach','hold'].includes(TRIALS[survival.task]?.[1]))return;
   const q=expTargetPoint(survival.target),x=x0+q.x*sc,y=y0+q.y*sc;
   ctx.save();ctx.strokeStyle=ctx.fillStyle='#ffda76';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,mini?5:80,0,TAU);ctx.stroke();ctx.textAlign='center';ctx.fillText('⚑',x,y);ctx.restore();
 }
@@ -3651,7 +3658,7 @@ function update(rdt, t) {
         const evM = gameEvent === 'drought' ? 3 : gameEvent === 'gold' ? 2 : 1;
         const pts = Math.round(10 * mult * (m.hue === 'violet' ? 3 : 1) * (fever ? 2 : 1) * evM * DF().score * styleMult() * (1 + .08 * (meta.mote || 0)));
         score += pts;
-        if(survival && TRIALS[survival.task][1]==='dust')survival.progress++;
+        if(survival && TRIALS[survival.task]?.[1]==='dust')survival.progress++;
         energy = Math.min(100, energy + (m.hue === 'violet' ? 16 : 7) * mods.energy * (gameEvent === 'drought' ? 3 : 1) * (1 + .08 * (meta.mote || 0)));
         addFloat(m.x, m.y - 8, '+' + pts, m.hue === 'violet' ? 'rgba(178,107,255,' : 'rgba(140,240,255,');
         if (mult > 1 || fever) {
