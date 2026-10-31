@@ -199,6 +199,10 @@
     text-shadow:0 0 30px rgba(255,61,127,1),0 0 80px rgba(255,61,127,.5);
     opacity:0;transition:opacity .6s;pointer-events:none}
   #buildSlots{position:absolute;top:116px;left:clamp(6px,2vw,32px);max-width:min(26vw,230px);font:12px/1.5 sans-serif;background:#090e1acc;border-radius:5px;padding:4px 7px;color:#c4f8ff}
+  #expHud{position:absolute;top:110px;left:14px;width:min(260px,32vw);padding:8px;color:#fff2ce;background:#080d19de;font:13px/1.55 sans-serif;white-space:pre-line;border-left:3px solid #ffc070}
+  #expHud.urgent{color:#ffb3a5;border-color:#ff7769}
+  body.expedition #buildSlots,body.expedition #recipeChip,body.expedition #gestHint{display:none}
+  #extremeResult{position:absolute;top:18%;width:100%;text-align:center;color:#ffd08a;font-size:22px}
   #contractSlots{color:#ffd698}
   #bossName.on{opacity:1}
   #bossHealth{position:absolute;top:max(112px,9vh);left:50%;transform:translateX(-50%);
@@ -371,7 +375,7 @@
 <div id="invert"></div><div id="lbTop"></div><div id="lbBot"></div><div id="bossName"></div>
 
 <div id="hud">
-  <div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
+  <div id="expHud" hidden></div><div id="buildSlots"><div id="skillSlots"></div><div id="contractSlots"></div><div id="basicSlots"></div></div>
   <div id="bossHealth" hidden><span id="bossHealthText"></span><progress id="bossHealthBar" aria-label="首领生命"></progress><small id="bossHint"></small></div>
   <div class="chip" id="scoreChip"><span class="lbl">SCORE 得分</span>
     <div id="score">0</div><div id="combo">COMBO ×2</div><div id="comboBar"></div></div>
@@ -399,6 +403,7 @@
     ☾ 刃舞:斩击回能/弹反弹幕/拆解炸弹 · ✛ 星炮:独立弹药/克制远程重甲<br>
     ◎ 脉冲会被护盾<b>格挡</b> · 异变事件与精英词缀随机降临</div>
   <button class="btn magnetic" id="startBtn">进 入 引 力 场</button>
+  <button class="btn magnetic" id="extremeBtn" style="margin-top:10px;color:#ffbc80">极限远征 · 五境撤离</button>
   <button class="btn magnetic" id="guideBtn" style="margin-top:34px;font-size:12px;padding:10px 34px">机 制 图 鉴</button>
   <button class="btn magnetic" id="helpBtn" style="margin-top:12px;font-size:12px;padding:10px 34px;color:#ffd98a;border-color:rgba(255,210,120,.45)">操 作 说 明</button>
   <button class="btn magnetic" id="shopBtn" style="margin-top:14px;font-size:12px;padding:10px 34px;color:var(--gold);border-color:rgba(255,210,90,.4)">回 响 商 店</button>
@@ -410,6 +415,7 @@
 
 <div class="panel" id="gameover">
   <div class="spacer"></div>
+  <div id="extremeResult" hidden></div>
   <div id="goStats">
     <div class="item"><div class="num" id="goScore">0</div><span class="lbl">得分</span></div>
     <div class="item"><div class="num" id="goCombo">0</div><span class="lbl">最高连击</span></div>
@@ -654,8 +660,128 @@ let INSET = 0;                     // 地图四边的禁区宽度：球进不去
 let camX = 0, camY = 0;            // 相机在世界里的左上角
 const CAM_SAFE = 46;               // 兜底：光球与屏幕边缘的最小距离
 const terrain = [];
+let expedition=null;
+const EXP_ITEMS={pulse:'脉冲',blade:'刃舞',cannon:'星炮',line:'流星斩',circle:'引力奇点',zig:'天雷连环',dash:'冲刺',push:'排斥波',repair:'应急修复'};
+const EXP_MAPS=[
+  {name:'震裂矿坑',color:'#ffa975',rule:'红圈蓄亮后地震，绕开矿脉',task:'勘测矿脉',hold:1.5,rows:['..R..R...', '.R..X..R.', '...R..X..', '.X...R...', '...R...R.']},
+  {name:'逆潮航道',color:'#75f1cb',rule:'流带每 6 秒反向，看箭头走',task:'校准浮标',hold:2,rows:['..>...R..', '.R..>...R', '...>..>..', '.>...R..>', '...R..>..']},
+  {name:'相位闸阵',color:'#ffd577',rule:'金色闸墙每 5 秒切换通行状态',task:'破解闸锁',hold:2.5,rows:['..G..|...', '.|..G..|.', '...|..G..', '.G...|..G', '...G..|..']},
+  {name:'镜冰断层',color:'#a4e4ff',rule:'蓝色冰面会滑行，提前松键转向',task:'稳定冰锚',hold:2,rows:['..I..R.I.', '.R..I..R.', '.I...I...', '...R..I.R', '.I...R...']},
+  {name:'日蚀回廊',color:'#d3a4ff',rule:'每 12 秒末段暗蚀，进入紫灯圈避伤',task:'点燃界灯',hold:3,rows:['..L..|...', '.|..L..|.', '...L..L..', '.L..|...L', '...L..|..']}
+];
+const expPoint=(u,v)=>({x:INSET+u*(WORLD_W-2*INSET),y:INSET+v*(WORLD_H-2*INSET)});
+function expMap(){return EXP_MAPS[expedition.order[expedition.stage]];}
+function expTerrain(){
+  const m=expMap(), unit=Math.min((WORLD_W-2*INSET)/10,(WORLD_H-2*INSET)/6);
+  m.rows.forEach((row,j)=>[...row].forEach((ch,i)=>{
+    if(ch==='.')return;
+    const p=expPoint((i+1)/10,(j+1)/6);
+    if(ch==='R')terrain.push({...p,reef:true,kind:'reef',r:unit*.28});
+    else if(ch==='|' || ch==='G')terrain.push({...p,kind:'wall',gate:ch==='G',w:unit*.24,h:unit*1.36});
+    else if(ch==='>')terrain.push({...p,kind:'current',dir:(j%2?1:-1),baseDir:(j%2?1:-1),w:unit*1.7,h:unit*.65});
+    else terrain.push({...p,kind:({I:'ice',L:'lamp',X:'quake'})[ch],r:unit*(ch==='L'?.95:.64)});
+  }));
+}
+function expTargetPoint(target){return expPoint(target.u,target.v);}
+function expOpenPoints(){
+  const points=[];
+  for(let j=1;j<=7;j++)for(let i=1;i<=11;i++){
+    const q={u:i/12,v:j/8},p=expTargetPoint(q);
+    if(!terrain.some(t=>(t.reef||t.kind==='wall'||t.gate)&&terrainOverlap(t,{...p,r:36})))points.push(q);
+  }
+  return points;
+}
+function newExpMap(){
+  const e=expedition;buildTerrain();
+  e.age=0;e.remaining=rand(90,112);e.nodes=0;e.charge=0;e.delay=rand(9,15);e.exit=false;e.slipX=e.slipY=0;e.hazardAt=0;
+  const points=expOpenPoints();
+  e.route=[];
+  for(let k=0;k<5;k++){
+    const last=e.route.at(-1);
+    const remaining=points.filter(q=>!e.route.includes(q));
+    const preferred=remaining.filter(q=>!last||Math.hypot(q.u-last.u,q.v-last.v)>.25);
+    const options=preferred.length?preferred:remaining;
+    const feature=['quake','current','gate','ice','lamp'][e.order[e.stage]];
+    const sites=terrain.filter(t=>feature==='gate'?t.gate:t.kind===feature);
+    const nearFeature=q=>{const p=expTargetPoint(q);return Math.min(...sites.map(t=>hyp(t.x-p.x,t.y-p.y)/(t.r||Math.max(t.w,t.h)/2)));};
+    const pool=k>0 && k<4 ? options.slice().sort((a,b)=>nearFeature(a)-nearFeature(b)).slice(0,3) : options;
+    e.route.push(pool[Math.floor(rand(0,pool.length))]);
+  }
+  Object.assign(player,expTargetPoint(e.route[0]),{vx:0,vy:0,invuln:2});for(const n of player.tail)Object.assign(n,{x:player.x,y:player.y,px:player.x,py:player.y});
+  hunters=[];bullets=[];webs=[];blasts=[];pickups=[];arrows=[];wells=[];vortices=[];thunders=[];playerBolts=[];storms=[];pairA=pairB=null;spawnTimer=e.stage===0?9:5;
+  golden=null; pairTimer=45; lineFxs=[]; goldenTimer=12; wellTimer=18; corpses=[];
+  motes=[];updateCamera();for(let i=0;i<36;i++)spawnMote(true);
+  e.drop=null;
+  e.nextDrop=Math.max(e.nextDrop,elapsed+rand(12,18));
+  shout(expMap().name);banner(expMap().rule);
+}
+function expLocked(id){
+  if(!expedition||expedition.bag[id]===5)return false;
+  if(elapsed>=expedition.hintAt){banner(EXP_ITEMS[id]+' · 同名碎片 '+(expedition.bag[id]||0)+'/5');expedition.hintAt=elapsed+1.5;}
+  return true;
+}
+function expTick(dt){
+  const e=expedition,m=expMap();e.age+=dt;e.remaining-=dt;
+  if(e.remaining<=0){score=displayScore=0;lives=0;e.outcome='撤离超时 · 得分清零';gameOver();return true;}
+  const mode=e.order[e.stage];
+  if(mode===1) for(const p of terrain)if(p.baseDir)p.dir=p.baseDir*(Math.floor(e.age/6)%2?-1:1);
+  if(mode===2) for(const p of terrain)if(p.gate)p.kind=Math.floor(e.age/5)%2?'screen':'wall';
+  const inside=(kind)=>terrain.some(p=>p.kind===kind && hyp(player.x-p.x,player.y-p.y)<p.r);
+  if(e.age>=e.hazardAt && player.invuln<=0 && ((mode===0 && e.age%6>=5 && inside('quake')) || (mode===4 && e.age%12>=9 && !inside('lamp')))){
+    e.hazardAt=mode===4 ? (Math.floor(e.age/12)+1)*12 : e.age+2;damagePlayer(player.x,player.y);if(state!=='PLAY')return true;
+  }
+  const track=e.route[e.exit?4:e.nodes+1],target=expTargetPoint(track);
+  if(!e.exit){
+    e.delay=Math.max(0,e.delay-dt);
+    if(e.delay===0){
+      if(hyp(player.x-target.x,player.y-target.y)<66)e.charge+=dt;
+      else e.charge=Math.max(0,e.charge-dt*.5);
+      if(e.charge>=m.hold){
+        e.nodes++;e.charge=0;e.delay=rand(10,19);score+=120;player.invuln=Math.max(player.invuln,1.5);
+        if(e.nodes===3){e.exit=true;e.remaining=Math.min(e.remaining,24);banner('撤离门已开启 · 前往金色门');}
+      }
+    }
+  }else if(hyp(player.x-target.x,player.y-target.y)<64){
+    if(e.stage===4){e.outcome='五境撤离成功';gameOver();}else{e.stage++;newExpMap();}
+    return true;
+  }
+  if(!e.drop && elapsed>=e.nextDrop){
+    const id=e.focus;if(id && (e.bag[id]||0)<5){
+      const near=expOpenPoints().filter(q=>{const p=expTargetPoint(q),d=hyp(p.x-player.x,p.y-player.y);return d>80&&d<Math.max(650,W*.7)});
+      const pool=near.length?near:[track];e.drop={...pool[Math.floor(rand(0,pool.length))],id};
+    }
+  }
+  if(e.drop){
+    const p=expTargetPoint(e.drop);
+    if(hyp(player.x-p.x,player.y-p.y)<46){
+      const id=e.drop.id;e.bag[id]=(e.bag[id]||0)+1;e.drop=null;e.nextDrop=elapsed+rand(15,23);
+      if(e.bag[id]===5){
+        if(Object.hasOwn(unlocked,id)){unlocked[id]=true;if(!weapon)weapon=id;syncWeapons();}
+        shout(EXP_ITEMS[id]+' · 合成');e.focus=['pulse','line','blade','circle','cannon','zig','dash','push','repair'].find(k=>e.bag[k]!==5);
+      }else banner(EXP_ITEMS[id]+'碎片 '+e.bag[id]+'/5');
+    }
+  }
+  const warning=mode===4 && e.age%12>=7?' · 暗蚀将至／进入紫灯圈':mode===0 && e.age%6>=3.5?' · 震区预警':'';
+  const msg=(e.stage+1)+'/5 '+m.name+'　'+Math.ceil(e.remaining)+'秒\n'+m.rule+warning+'\n'+(e.exit?'前往金色撤离门':m.task+' '+e.nodes+'/3 · '+(e.delay>0?Math.ceil(e.delay)+'秒后可交互':e.charge.toFixed(1)+' / '+m.hold+'秒'))+'\nT 切换搜寻 · '+(EXP_ITEMS[e.focus]||'全部合成')+'　'+(e.bag[e.focus]||0)+'/5'+(e.drop?' · ◆'+EXP_ITEMS[e.drop.id]+'已出现':'')+'\n'+Object.entries(e.bag).map(([k,n])=>EXP_ITEMS[k]+' '+n+'/5').join('　');
+  $('expHud').classList.toggle('urgent',e.remaining<=10);
+  if($('expHud').textContent!==msg)$('expHud').textContent=msg;
+  return false;
+}
+function expMarkers(mini,x0=0,y0=0,sc=1){
+  if(!expedition||state!=='PLAY')return;
+  const e=expedition;
+  function mark(q,color,label){
+    const p=expTargetPoint(q),x=x0+p.x*sc,y=y0+p.y*sc;
+    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,mini?4:42,0,TAU);ctx.stroke();
+    ctx.font=mini?'bold 11px sans-serif':'bold 16px sans-serif';ctx.textAlign='center';ctx.fillText(label,x,mini?y+3:y+5);
+  }
+  ctx.save();mark(e.route[e.exit?4:e.nodes+1],e.exit?'#ffdb75':'#b6ff9c',e.exit?'门':mini?'★':expMap().task);
+  if(e.drop)mark(e.drop,'#6ffaff',mini?'◆':EXP_ITEMS[e.drop.id]+'碎片');ctx.restore();
+}
+
 function buildTerrain() {
   terrain.length = 0;
+  if(expedition){expTerrain();return;}
   for (const [u,v,r,reef] of [
     [.26,.27,32,true],[.48,.32,48,true],[.71,.25,70,false],
     [.3,.57,75,false],[.56,.55,38,true],[.76,.65,45,true],
@@ -703,7 +829,7 @@ function drawTerrain(t) {
   ctx.save();
   for (const p of terrain) {
     if (p.w) {
-      const color=p.kind==='wall' ? '#67adc4' : p.kind==='screen' ? '#ffbf72' : '#69edba';
+      const color=p.gate ? '#ffd577' : p.kind==='wall' ? '#67adc4' : p.kind==='screen' ? '#ffbf72' : '#69edba';
       ctx.fillStyle=color+'30'; ctx.strokeStyle=color; ctx.lineWidth=2;
       ctx.fillRect(p.x-p.w/2,p.y-p.h/2,p.w,p.h);
       if (p.kind==='screen') ctx.setLineDash([8,5]);
@@ -711,6 +837,11 @@ function drawTerrain(t) {
       ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='bold 18px sans-serif'; ctx.fillStyle=color;
       ctx.fillText(p.kind==='wall' ? '▰' : p.kind==='screen' ? '◇' : p.dir>0 ? '› › ›' : '‹ ‹ ‹',p.x,p.y);
       continue;
+    }
+    if(['ice','lamp','quake'].includes(p.kind)){
+      const color=p.kind==='ice'?'#8edfff':p.kind==='lamp'?'#dbadff':expedition.age%6>=3.5?'#ff615d':'#ec9958';
+      ctx.fillStyle=color+'35';ctx.strokeStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill();ctx.stroke();
+      ctx.fillStyle=color;ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText({ice:'冰',lamp:'灯',quake:'震'}[p.kind],p.x,p.y);continue;
     }
     const {x,y,r,reef}=p;
     ctx.fillStyle=reef ? '#172a42' : 'rgba(126,76,200,.25)';
@@ -1858,6 +1989,7 @@ function addStreak(x, y, vx, vy, life, color, len) {
 }
 // 掉落物
 function dropPickup(x, y, kind, val) {
+  if(expedition && (kind==="relic" || kind.startsWith("ult")))return;
   pickups.push({ x, y, vx: rand(-60, 60), vy: rand(-60, 60), kind, val: val || 25, t: 0, life: kind === 'relic' ? 16 : kind.startsWith('ult') ? 12 : 8, ph: rand(0, TAU) });
   if (kind === 'life') addFloat(x, y - 16, '生命碎片!', 'rgba(255,150,190,', 15);
   if (kind.startsWith('ult')) addFloat(x, y - 18, '大 招 球 !', 'rgba(255,225,150,', 17);
@@ -1932,7 +2064,7 @@ function damagePlayer(sx, sy) {
   sfx.hit();
   if (mods.nova && lives > 0) novaPending = true;   // 湮灭回声：延后到本帧敌人循环之外
   if (lives <= 0) {
-    if (meta.revive && !reviveUsed) {        // 局外：复燃——一局一次的还魂
+    if (!expedition && meta.revive && !reviveUsed) {        // 局外：复燃——一局一次的还魂
       reviveUsed = true;
       achStats.revives++; checkAch();
       lives = 1;
@@ -2185,6 +2317,7 @@ function castPulse(R) {
   if (mods.storm) storms.push({ x: player.x, y: player.y, r: 150, life: 2.4+.3*rankOf("storm"), t: 0 });
 }
 function firePulse() {
+  if(expLocked("pulse"))return;
   const cost = mods.pulseCost;
   if (energy < cost) {
     sfx.fizzle();
@@ -2232,6 +2365,7 @@ function syncRecipeHud() {
   $('recipeBar').style.width = '0%';
 }
 function pushCombo(type) {
+  if(expedition)return;
   if (state !== 'PLAY') return;
   const now = performance.now() / 1000;
   if (comboSeq.length && now - comboSeqT > 6) comboSeq = [];   // 间隔过久重来
@@ -2310,6 +2444,7 @@ function spendEnergy(cost) {
 }
 // —— 冲刺：位移 + 无敌帧 + 穿身擦弹，冷却 2.2s ——
 function doDash() {
+  if(expLocked("dash"))return;
   if (state !== 'PLAY' || choosing) return;
   if (dashCd > 0) {
     addFloat(player.x, player.y - 26, '冲刺 ' + dashCd.toFixed(1) + 's', 'rgba(150,180,220,', 12);
@@ -2343,6 +2478,7 @@ function doDash() {
 }
 
 function basicAttack() {
+  if(expedition && !weapon){expLocked(expedition.focus||'pulse');return;}
   if (attackCd > 0) return;
   achRun.mask |= weapon === 'pulse' ? 1 : weapon === 'blade' ? 2 : 4;
   const wN = (achRun.mask & 1 ? 1 : 0) + (achRun.mask & 2 ? 1 : 0) + (achRun.mask & 4 ? 1 : 0);
@@ -2440,6 +2576,7 @@ function unlockWeapon(id, label) {
   syncWeapons();
 }
 function unlockHint(id) {
+  if(expedition)return "收集同名碎片 "+(expedition.bag[id]||0)+"/5";
   return id === 'blade' ? '100 分或生存 12 秒' : '450 分或生存 35 秒';
 }
 function syncWeapons() {
@@ -2503,6 +2640,7 @@ function recognizeGesture(path) {
 }
 let utilityReadyAt = 0;
 function useUtility(repair) {
+  if(expLocked(repair?"repair":"push"))return;
   if (elapsed < utilityReadyAt) { banner("战术技能冷却 " + Math.ceil(utilityReadyAt-elapsed) + " 秒"); return; }
   if (repair && lives >= 5) { banner("生命已满"); return; }
   if (!spendEnergy(repair ? 45 : 22)) return;
@@ -2523,6 +2661,7 @@ function useUtility(repair) {
   rings.push({x:player.x,y:player.y,r:8,maxR:repair ? 65 : 200,alpha:.9,speed:480,color:repair ? "rgba(110,255,180," : "rgba(130,215,255,",warp:false,w:3});
 }
 function castGesture(g) {
+  if(expLocked(g.type))return;
   if (gestureCd > 0) return;
   const gm = (1 - .08 * (meta.sigil || 0)) * (mods.runePact ? .75-.03*rankOf("cRune") : 1);    // 刻印亲和：耗能减免
   if (g.type === 'line') {
@@ -2710,7 +2849,14 @@ function updateMagnets() {
 }
 
 // ---------- 状态切换 ----------
-function startGame() {
+function startGame(extreme=false) {
+  expedition=null;
+  if(extreme===true){
+    const order=[0,1,2,3,4];for(let i=4;i>0;i--){const j=Math.floor(rand(0,i+1));[order[i],order[j]]=[order[j],order[i]];}
+    expedition={order,stage:0,bag:{},focus:'pulse',nextDrop:rand(15,23),hintAt:0};
+  }
+  buildTerrain(); document.body.classList.toggle('expedition',!!expedition);
+  $('expHud').hidden=!expedition;$('expHud').textContent='';$('extremeResult').hidden=true;
   state = 'PLAY';
   score = 0; displayScore = 0; combo = 0; bestCombo = 0; comboTimer = 0;
   utilityReadyAt = 0;
@@ -2728,8 +2874,8 @@ function startGame() {
   shards = []; flares = []; dmgDirs = [];
   killStreak = 0; killStreakT = 0; lastPopScore = 0; feverGlow = 0;
   slowfxEl.style.opacity = 0;
-  weapon = 'pulse';
-  unlocked = { pulse: true, blade: !!meta.wBlade, cannon: !!meta.wCan };   // 局外：武器烙印
+  weapon = expedition ? null : 'pulse';
+  unlocked = expedition ? {pulse:false,blade:false,cannon:false} : { pulse: true, blade: !!meta.wBlade, cannon: !!meta.wCan };   // 局外：武器烙印
   attackCd = 0; gestureCd = 0; inscribing = false; inscribePath = [];
   playerBolts = []; slashes = []; vortices = []; thunders = []; lineFxs = [];
   skillChain = 0; skillChainT = 0; lastSkillType = ''; aimTarget = null;
@@ -2743,7 +2889,7 @@ function startGame() {
   camX = 0; camY = 0;
   dashCd = 0; dashFx = 0; wells = []; wellTimer = 15;
   achRun.mask = 0; achRun.hits = 0;
-  if (meta.head) {draftCredits++;draftWindow=true;}       // 局外：强化起点
+  if (!expedition && meta.head) {draftCredits++;draftWindow=true;}       // 局外：强化起点
   toggleShop(false);
   recipeIdx = 0; comboSeq = []; comboSkill = null; syncRecipeHud();
   gameEvent = null; eventT = 0; nextEventAt = 35; windA = 0; pickups = [];
@@ -2759,6 +2905,7 @@ function startGame() {
   while (livesChip.children.length > 3) livesChip.lastChild.remove();
   motes = []; for (let i = 0; i < 36; i++) spawnMote(true);
   player.reset(); player.invuln = 1.2;
+  if(expedition){newExpMap();expTick(0);}
   glyphs.explode();
   $('title').classList.remove('on');
   $('gameover').classList.remove('on');
@@ -2771,9 +2918,11 @@ function startGame() {
 }
 function gameOver() {
   state = 'OVER';
-  sfx.over();
-  shake = 22; glitch = 1;
-  deathFx = { x: player.x, y: player.y, t: 0 };   // 死亡推镜 + 灰化
+  if(expedition){$('extremeResult').textContent=expedition.outcome||'远征失败 · 辉光消散';$('extremeResult').hidden=false;}
+  const extracted=expedition?.outcome==='五境撤离成功';
+  if(extracted)sfx.unlock();else sfx.over();
+  shake = extracted?4:22; glitch = 1;
+  deathFx = extracted ? null : { x: player.x, y: player.y, t: 0 };   // 死亡推镜 + 灰化
   invertFlash();
   gridWave(player.x, player.y, 36, 1000);
   camKick += .05;
@@ -2793,7 +2942,7 @@ function gameOver() {
   $('goRank').style.color = RANKS[bestRank].c;
   // 结算回响结晶（难度加权）
   const crysM = diffKey === 'hard' ? 1.3 : diffKey === 'easy' ? .8 : 1;
-  const gain = Math.max(1, Math.round((score / 250 + wave * 3 + bestRank * 4) * crysM));
+  const gain = expedition?.outcome?.startsWith('撤离超时') ? 0 : Math.max(1, Math.round((score / 250 + wave * 3 + bestRank * 4) * crysM));
   crystals += gain;
   saveMeta();
   $('goCrys').textContent = '+' + gain;
@@ -2811,11 +2960,19 @@ function gameOver() {
   }
   hudEl.classList.remove('on');
   dangerEl.style.opacity = 0;
-  glyphs.set('辉光消散', 'GLOW  FADED');
-  setTimeout(() => $('gameover').classList.add('on'), 1100);
+  if(expedition?.outcome==='五境撤离成功')glyphs.set('五境归航','EXTRACTED');else glyphs.set('辉光消散', 'GLOW  FADED');
+  setTimeout(() => {if(state==='OVER')$('gameover').classList.add('on');}, 1100);
 }
 $('startBtn').addEventListener('click', startGame);
-$('againBtn').addEventListener('click', startGame);
+$('extremeBtn').addEventListener('click',()=>startGame(true));
+$('againBtn').addEventListener('click',()=>startGame(!!expedition));
+$('againBtn').insertAdjacentHTML('afterend','<button class="btn magnetic" id="swapMode">切换模式再开</button>');
+$('swapMode').onclick=()=>startGame(!expedition);
+addEventListener('keydown',ev=>{
+  if(!expedition||state!=='PLAY'||paused||ev.repeat||ev.key.toLowerCase()!=='t')return;
+  const pool=Object.keys(EXP_ITEMS).filter(id=>expedition.bag[id]!==5);
+  if(pool.length)expedition.focus=pool[(pool.indexOf(expedition.focus)+1)%pool.length];
+});
 // ---- 局外商店：回响结晶 & 永久升级 ----
 const META_ITEMS = [
   { id: 'life',   ic: '❍', name: '相位续存', desc: '初始生命 +1', max: 2, cost: [80, 220] },
@@ -3483,150 +3640,153 @@ function update(rdt, t) {
   // ---- 波次与生成 ----
   if (state === 'PLAY') {
     elapsed += rdt;
+    if(expedition && expTick(rdt))return;
     if(forge && !forge.done) offerForge(rdt);
     spawnTimer -= dt;
-    const cap = Math.min(7, 1 + Math.floor(elapsed / 12));
+    const cap = expedition ? Math.min(5,(weapon?2:1)+expedition.stage) : Math.min(7, 1 + Math.floor(elapsed / 12));
     if (spawnTimer <= 0 && calmT <= 0 && hunters.filter(h => h.kind !== 'mini').length < cap) {
       spawnEnemy(pickKind());
       spawnTimer = Math.max(1.2, 4.6 - elapsed * .045) * DF().spawn;
     }
-    if (surgeWarn > 0) {
-      surgeWarn -= rdt;
-      if (surgeWarn <= 0) {
-        const isBoss = wave % 5 === 0;
-        const n = isBoss ? 2 : Math.max(1, Math.min(9, 2 + Math.ceil(wave * .8) + DF().surge));
-        for (let k = 0; k < n; k++) {
-          let x, y;
-          if (surgeEdge === 0) { x = camX + rand(-70, -25); y = camY + rand(H*.08, H*.92); }
-          else if (surgeEdge === 1) { x = camX + W + rand(25, 70); y = camY + rand(H*.08, H*.92); }
-          else if (surgeEdge === 2) { y = camY + rand(-70, -25); x = camX + rand(W*.08, W*.92); }
-          else { y = camY + H + rand(25, 70); x = camX + rand(W*.08, W*.92); }
-          const r = Math.random();
-          const kind = isBoss ? 'chaser'
-            : (wave >= 6 && r < .14) ? 'phantom'
-            : (wave >= 5 && r < .26) ? 'warden'
-            : (wave >= 4 && r < .38) ? 'bomber'
-            : (wave >= 3 && r < .5) ? 'splitter'
-            : (wave >= 2 && r < .72) ? 'sniper' : 'chaser';
-          const medic = !isBoss && wave % 3 === 0 && k === 0;
-          const extra = !isBoss && !medic && wave >= 4 && k === 0
-            ? ['shell','drain','brood'][Math.floor((wave-4)/2) % 3] : undefined;
-          spawnEnemy(kind, x, y, medic ? 'medic' : extra);
-          if (extra) banner({shell:'碎甲卫 · 轻击破甲',drain:'虹吸者 · 拉开距离',brood:'巢母 · 留脉冲清幼体'}[extra]);
-          if (medic) banner('精英织愈者 · 优先击破绿色光环');
+    if(!expedition){
+      if (surgeWarn > 0) {
+        surgeWarn -= rdt;
+        if (surgeWarn <= 0) {
+          const isBoss = wave % 5 === 0;
+          const n = isBoss ? 2 : Math.max(1, Math.min(9, 2 + Math.ceil(wave * .8) + DF().surge));
+          for (let k = 0; k < n; k++) {
+            let x, y;
+            if (surgeEdge === 0) { x = camX + rand(-70, -25); y = camY + rand(H*.08, H*.92); }
+            else if (surgeEdge === 1) { x = camX + W + rand(25, 70); y = camY + rand(H*.08, H*.92); }
+            else if (surgeEdge === 2) { y = camY + rand(-70, -25); x = camX + rand(W*.08, W*.92); }
+            else { y = camY + H + rand(25, 70); x = camX + rand(W*.08, W*.92); }
+            const r = Math.random();
+            const kind = isBoss ? 'chaser'
+              : (wave >= 6 && r < .14) ? 'phantom'
+              : (wave >= 5 && r < .26) ? 'warden'
+              : (wave >= 4 && r < .38) ? 'bomber'
+              : (wave >= 3 && r < .5) ? 'splitter'
+              : (wave >= 2 && r < .72) ? 'sniper' : 'chaser';
+            const medic = !isBoss && wave % 3 === 0 && k === 0;
+            const extra = !isBoss && !medic && wave >= 4 && k === 0
+              ? ['shell','drain','brood'][Math.floor((wave-4)/2) % 3] : undefined;
+            spawnEnemy(kind, x, y, medic ? 'medic' : extra);
+            if (extra) banner({shell:'碎甲卫 · 轻击破甲',drain:'虹吸者 · 拉开距离',brood:'巢母 · 留脉冲清幼体'}[extra]);
+            if (medic) banner('精英织愈者 · 优先击破绿色光环');
+          }
+          if (isBoss) {
+            let bx, by;
+            if (surgeEdge === 0) { bx = camX - 60; by = camY + H/2; }
+            else if (surgeEdge === 1) { bx = camX + W + 60; by = camY + H/2; }
+            else if (surgeEdge === 2) { bx = camX + W/2; by = camY - 60; }
+            else { bx = camX + W/2; by = camY + H + 60; }
+            const boss = spawnEnemy('overcore', bx, by);
+            shout(boss.bossName + '来袭');
+            sfx.roar();
+            // 电影化出场：黑边 + 名牌
+            document.body.classList.add('cine');
+            const bn = $('bossName');
+            bn.textContent = boss.bossName + ' · 第 ' + wave + ' 波';
+            bn.classList.add('on');
+            setTimeout(() => { document.body.classList.remove('cine'); bn.classList.remove('on'); }, 2600);
+            camKick += .05;
+            gridWave(bx, by, 32, 850);
+          }
         }
-        if (isBoss) {
-          let bx, by;
-          if (surgeEdge === 0) { bx = camX - 60; by = camY + H/2; }
-          else if (surgeEdge === 1) { bx = camX + W + 60; by = camY + H/2; }
-          else if (surgeEdge === 2) { bx = camX + W/2; by = camY - 60; }
-          else { bx = camX + W/2; by = camY + H + 60; }
-          const boss = spawnEnemy('overcore', bx, by);
-          shout(boss.bossName + '来袭');
-          sfx.roar();
-          // 电影化出场：黑边 + 名牌
-          document.body.classList.add('cine');
-          const bn = $('bossName');
-          bn.textContent = boss.bossName + ' · 第 ' + wave + ' 波';
-          bn.classList.add('on');
-          setTimeout(() => { document.body.classList.remove('cine'); bn.classList.remove('on'); }, 2600);
-          camKick += .05;
-          gridWave(bx, by, 32, 850);
+      } else {
+        surgeTimer -= calmT > 0 ? 0 : dt;
+        if (surgeTimer <= 0) {
+          wave++;
+          draftCredits++; draftWindow=true;
+          if (wave===4) {
+            const sites=terrain.filter(p=>p.kind==='wall' && p.w>p.h)
+              .flatMap(w=>[-1,1].map(side=>({x:w.x,y:w.y+side*(w.h/2+82),r:60})))
+              .filter(site=>!terrain.some(p=>(p.reef || p.kind==='wall') && terrainOverlap(p,site)))
+              .sort((a,b)=>hyp(a.x-player.x,a.y-player.y)-hyp(b.x-player.x,b.y-player.y));
+            if(sites.length) forge={...sites[0],held:0,done:false};
+          }
+          if (wave===5) forge=null;
+          surgeWarn = 2.2;
+          surgeEdge = Math.floor(rand(0, 4));
+          surgeTimer = Math.max(15, 26 - wave * .8);
+          banner(wave===4 ? '第 4 波 · 去小地图金色菱形处驻守 5 秒' : wave % 5 === 0 ? `第 ${wave} 波 · 异 常 质 量 逼 近` : `第 ${wave} 波 · 潮汐来袭`);
+          sfx.warn();
+          shake = Math.max(shake, 5);
         }
       }
-    } else {
-      surgeTimer -= calmT > 0 ? 0 : dt;
-      if (surgeTimer <= 0) {
-        wave++;
-        draftCredits++; draftWindow=true;
-        if (wave===4) {
-          const sites=terrain.filter(p=>p.kind==='wall' && p.w>p.h)
-            .flatMap(w=>[-1,1].map(side=>({x:w.x,y:w.y+side*(w.h/2+82),r:60})))
-            .filter(site=>!terrain.some(p=>(p.reef || p.kind==='wall') && terrainOverlap(p,site)))
-            .sort((a,b)=>hyp(a.x-player.x,a.y-player.y)-hyp(b.x-player.x,b.y-player.y));
-          if(sites.length) forge={...sites[0],held:0,done:false};
-        }
-        if (wave===5) forge=null;
-        surgeWarn = 2.2;
-        surgeEdge = Math.floor(rand(0, 4));
-        surgeTimer = Math.max(15, 26 - wave * .8);
-        banner(wave===4 ? '第 4 波 · 去小地图金色菱形处驻守 5 秒' : wave % 5 === 0 ? `第 ${wave} 波 · 异 常 质 量 逼 近` : `第 ${wave} 波 · 潮汐来袭`);
+      // ---- 异变事件：周期性随机规则扭曲 ----
+      if (!gameEvent && elapsed >= nextEventAt && surgeWarn <= 0) {
+        const pool = ['storm', 'drought', 'frenzy', 'gold', 'dark'];
+        const id = pool[Math.floor(rand(0, pool.length))];
+        const names = { storm: '引力风暴', drought: '光尘枯竭', frenzy: '猎手狂化', gold: '黄金回响', dark: '暗 域' };
+        const durs = { storm: 12, drought: 10, frenzy: 12, gold: 10, dark: 11 };
+        gameEvent = id; eventDur = durs[id]; eventT = eventDur;
+        $('eventName').textContent = '异变 · ' + names[id];
+        $('eventChip').style.opacity = 1;
+        shout(names[id]);
+        banner('异 变 侵 入');
         sfx.warn();
-        shake = Math.max(shake, 5);
+        bloomT = Math.max(bloomT, .5);
+        gridWave(camX + W / 2, camY + H / 2, 20, 1200);
       }
-    }
-    // ---- 异变事件：周期性随机规则扭曲 ----
-    if (!gameEvent && elapsed >= nextEventAt && surgeWarn <= 0) {
-      const pool = ['storm', 'drought', 'frenzy', 'gold', 'dark'];
-      const id = pool[Math.floor(rand(0, pool.length))];
-      const names = { storm: '引力风暴', drought: '光尘枯竭', frenzy: '猎手狂化', gold: '黄金回响', dark: '暗 域' };
-      const durs = { storm: 12, drought: 10, frenzy: 12, gold: 10, dark: 11 };
-      gameEvent = id; eventDur = durs[id]; eventT = eventDur;
-      $('eventName').textContent = '异变 · ' + names[id];
-      $('eventChip').style.opacity = 1;
-      shout(names[id]);
-      banner('异 变 侵 入');
-      sfx.warn();
-      bloomT = Math.max(bloomT, .5);
-      gridWave(camX + W / 2, camY + H / 2, 20, 1200);
-    }
-    if (gameEvent) {
-      eventT -= rdt;
-      $('eventBar').style.width = Math.max(0, eventT / eventDur * 100) + '%';
-      if (eventT <= 0) {
-        gameEvent = null;
-        $('eventChip').style.opacity = 0;
-        nextEventAt = elapsed + rand(28, 42);
-        banner('异 变 平 息');
-      }
-    }
-    if (gameEvent === 'storm') {          // 旋转风场推动万物
-      windA += rdt * .5;
-      const wx = Math.cos(windA), wy = Math.sin(windA);
-      for (const m of motes) { m.vx += wx * 130 * dt; m.vy += wy * 130 * dt; }
-      for (const h of hunters) { h.vx += wx * 70 * dt; h.vy += wy * 70 * dt; }
-      for (const b of bullets) { b.vx += wx * 90 * dt; b.vy += wy * 90 * dt; }
-      for (const s of sparks) { s.vx += wx * 160 * dt; s.vy += wy * 160 * dt; }
-      for (const c of corpses) { c.vx += wx * 120 * dt; c.vy += wy * 120 * dt; }
-      for (const p of pickups) { p.vx += wx * 90 * dt; p.vy += wy * 90 * dt; }
-      if (Math.random() < .6) addStreak(camX + rand(0, W), camY + rand(0, H), wx * 900, wy * 900, .4, '120,200,255', 70);
-    }
-    // ---- 谐振精英对：两侧同生，引力使其"无意"相聚，相遇则融合 ----
-    if (elapsed > 40) {
-      pairTimer -= rdt;
-      if (pairTimer <= 0 && !pairA) {
-        pairTimer = rand(30, 45);
-        const kinds = ['chaser', 'sniper', 'splitter', 'bomber', 'warden'];
-        const kind = kinds[Math.floor(rand(0, kinds.length))];
-        const aff = ['swift', 'tank', 'volatile'][Math.floor(rand(0, 3))];
-        const py = camY + rand(H * .25, H * .75);
-        pairA = spawnEnemy(kind, camX - 34, py + rand(-60, 60));
-        pairB = spawnEnemy(kind, camX + W + 34, py + rand(-60, 60));
-        for (const p of [pairA, pairB]) {
-          p.elite = aff; p.r *= 1.22;
-          p.hp += aff === 'tank' ? 2 : 1; p.maxHp = p.hp;
-          if (aff === 'swift') p.spd = 1.38 * DF().spd;
+      if (gameEvent) {
+        eventT -= rdt;
+        $('eventBar').style.width = Math.max(0, eventT / eventDur * 100) + '%';
+        if (eventT <= 0) {
+          gameEvent = null;
+          $('eventChip').style.opacity = 0;
+          nextEventAt = elapsed + rand(28, 42);
+          banner('异 变 平 息');
         }
-        banner('谐振精英对 · 阻止它们相遇');
-        sfx.warn();
       }
-      if (pairA && (!hunters.includes(pairA) || !hunters.includes(pairB))) {
-        pairA = pairB = null;              // 一方陨落：谐振解除
-      } else if (pairA) {
-        const dx = pairB.x - pairA.x, dy = pairB.y - pairA.y, d = hyp(dx, dy) + .001;
-        const acc = clamp(11000 / (d + 60), 24, 260) * dt;   // 相互引力（非主动靠近）
-        pairA.vx += dx / d * acc; pairA.vy += dy / d * acc;
-        pairB.vx -= dx / d * acc; pairB.vy -= dy / d * acc;
-        if (d < pairA.r + pairB.r + 4) mergePair();
+      if (gameEvent === 'storm') {          // 旋转风场推动万物
+        windA += rdt * .5;
+        const wx = Math.cos(windA), wy = Math.sin(windA);
+        for (const m of motes) { m.vx += wx * 130 * dt; m.vy += wy * 130 * dt; }
+        for (const h of hunters) { h.vx += wx * 70 * dt; h.vy += wy * 70 * dt; }
+        for (const b of bullets) { b.vx += wx * 90 * dt; b.vy += wy * 90 * dt; }
+        for (const s of sparks) { s.vx += wx * 160 * dt; s.vy += wy * 160 * dt; }
+        for (const c of corpses) { c.vx += wx * 120 * dt; c.vy += wy * 120 * dt; }
+        for (const p of pickups) { p.vx += wx * 90 * dt; p.vy += wy * 90 * dt; }
+        if (Math.random() < .6) addStreak(camX + rand(0, W), camY + rand(0, H), wx * 900, wy * 900, .4, '120,200,255', 70);
       }
-    }
-    if (!unlocked.blade && (score >= 100 || elapsed >= 12)) unlockWeapon('blade', '刃 舞 形 态');
-    if (!unlocked.cannon && (score >= 450 || elapsed >= 35)) unlockWeapon('cannon', '星 炮 形 态');
-    if (score >= nextUpgradeAt || (nextUpgradeAt===FIRST_DRAFT_SCORE && elapsed>=12)) {
-      if(nextUpgradeAt===FIRST_DRAFT_SCORE && wave===0) draftWindow=true;
-      nextUpgradeAt = Math.round(nextUpgradeAt * 1.9 + 150);
-      draftCredits++;
-    }
+      // ---- 谐振精英对：两侧同生，引力使其"无意"相聚，相遇则融合 ----
+      if (elapsed > 40) {
+        pairTimer -= rdt;
+        if (pairTimer <= 0 && !pairA) {
+          pairTimer = rand(30, 45);
+          const kinds = ['chaser', 'sniper', 'splitter', 'bomber', 'warden'];
+          const kind = kinds[Math.floor(rand(0, kinds.length))];
+          const aff = ['swift', 'tank', 'volatile'][Math.floor(rand(0, 3))];
+          const py = camY + rand(H * .25, H * .75);
+          pairA = spawnEnemy(kind, camX - 34, py + rand(-60, 60));
+          pairB = spawnEnemy(kind, camX + W + 34, py + rand(-60, 60));
+          for (const p of [pairA, pairB]) {
+            p.elite = aff; p.r *= 1.22;
+            p.hp += aff === 'tank' ? 2 : 1; p.maxHp = p.hp;
+            if (aff === 'swift') p.spd = 1.38 * DF().spd;
+          }
+          banner('谐振精英对 · 阻止它们相遇');
+          sfx.warn();
+        }
+        if (pairA && (!hunters.includes(pairA) || !hunters.includes(pairB))) {
+          pairA = pairB = null;              // 一方陨落：谐振解除
+        } else if (pairA) {
+          const dx = pairB.x - pairA.x, dy = pairB.y - pairA.y, d = hyp(dx, dy) + .001;
+          const acc = clamp(11000 / (d + 60), 24, 260) * dt;   // 相互引力（非主动靠近）
+          pairA.vx += dx / d * acc; pairA.vy += dy / d * acc;
+          pairB.vx -= dx / d * acc; pairB.vy -= dy / d * acc;
+          if (d < pairA.r + pairB.r + 4) mergePair();
+        }
+      }
+      if (!unlocked.blade && (score >= 100 || elapsed >= 12)) unlockWeapon('blade', '刃 舞 形 态');
+      if (!unlocked.cannon && (score >= 450 || elapsed >= 35)) unlockWeapon('cannon', '星 炮 形 态');
+      if (score >= nextUpgradeAt || (nextUpgradeAt===FIRST_DRAFT_SCORE && elapsed>=12)) {
+        if(nextUpgradeAt===FIRST_DRAFT_SCORE && wave===0) draftWindow=true;
+        nextUpgradeAt = Math.round(nextUpgradeAt * 1.9 + 150);
+        draftCredits++;
+      }
+    } // 常规模式波次、异变与选牌
   }
 
   // ---- 敌人 ----
@@ -4473,6 +4633,7 @@ function drawMinimap(t) {
     const r = h.kind === 'overcore' ? 3.2 : 1.8;
     ctx.beginPath(); ctx.arc(x0 + h.x * sc, y0 + h.y * sc, r, 0, TAU); ctx.fill();
   }
+  expMarkers(true,x0,y0,sc);
   if(forge && !forge.done){ctx.fillStyle='#ffe166';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('◆',x0+forge.x*sc,y0+forge.y*sc+4);}
   // 光球
   ctx.fillStyle = '#eafeff';
@@ -4487,6 +4648,7 @@ function render(t) {
   const bg = ctx.createRadialGradient(W/2, H*.42, 0, W/2, H*.42, Math.max(W, H) * .75);
   bg.addColorStop(0, fever ? '#120a24' : '#0a0e20'); bg.addColorStop(1, '#04050c');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  if(expedition && state==='PLAY'){ctx.fillStyle=expMap().color+'14';ctx.fillRect(0,0,W,H);}
 
   // 背景层：屏幕空间 + 轻微视差，不跟着相机整屏平移
   ctx.save();
@@ -4500,7 +4662,7 @@ function render(t) {
   applyWorldTransform();
   if (shake > 0) ctx.translate(rand(-shake, shake) * .5, rand(-shake, shake) * .5);
   grid.render();
-  drawTerrain(t);
+  drawTerrain(t);expMarkers(false);
   if(forge && !forge.done){
     ctx.save();ctx.strokeStyle='#ffd368';ctx.fillStyle='#ffe998';ctx.textAlign='center';ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(forge.x,forge.y,74,0,TAU);ctx.stroke();
@@ -5503,7 +5665,7 @@ addEventListener('mousemove', e => {
 let lastT = performance.now();
 function loop(t) {
   requestAnimationFrame(loop);
-  let rdt = (t - lastT) / 1000; lastT = t;
+  let rdt = Math.max(0,(t - lastT) / 1000); lastT = t;
   // 直接控制光球：球就是鼠标，每帧硬对齐，任何暂停/掉帧/相机都不影响
   if (KEYBOARD_MODE) {
     const px0 = player.x, py0 = player.y;
@@ -5512,7 +5674,14 @@ function loop(t) {
       let dx = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
       let dy = (keys.s ? 1 : 0) - (keys.w ? 1 : 0) + (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
       const L = hyp(dx, dy);
-      if (L > 0) {
+      const ice=expedition && terrain.some(p=>p.kind==='ice' && terrainOverlap(p,player));
+      if(ice){
+        const blend=1-Math.exp(-dts*(L?2.8:1.5));
+        expedition.slipX+=((L?dx/L*560:0)-expedition.slipX)*blend;
+        expedition.slipY+=((L?dy/L*560:0)-expedition.slipY)*blend;
+        player.x+=expedition.slipX*dts;player.y+=expedition.slipY*dts;
+      }else if (L > 0) {
+        if(expedition){expedition.slipX=dx/L*560;expedition.slipY=dy/L*560;}
         const inField = terrain.some(p => p.kind==='slow' && hyp(player.x-p.x,player.y-p.y)<p.r);
         const sp = inField ? 350 : 560;
         player.x += dx / L * sp * dts;
