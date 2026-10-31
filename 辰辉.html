@@ -45,8 +45,8 @@
   #best{font-size:18px;color:#9fd8ff}
   #time{margin-top:6px;font-size:13px;opacity:.6}
   #waveTxt{margin-top:4px;font-size:11px;opacity:.5;color:#ffb8d0}
-  #livesChip{top:30px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
-  .life{width:11px;height:11px;border-radius:50%;background:var(--cyan);
+  #livesChip::before{content:attr(data-label);font:600 12px monospace;white-space:nowrap} #livesChip.critical{color:#ff91aa} #livesChip.critical .life:not(.off){background:#ff729a} #livesChip{align-items:center;top:30px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+  .life{width:16px;height:8px;border-radius:2px;background:var(--cyan);
     box-shadow:0 0 10px var(--cyan);transition:all .3s}
   .life.off{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(120,200,255,.35)}
   #eventChip{top:64px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .4s}
@@ -539,7 +539,7 @@
     <div class="gSec">— 移 动 —</div>
     <div class="gGrid" style="grid-template-columns:1fr">
       <div class="gCard">
-        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></div><div class="hs">前后左右推光球（方向键也行），速度恒定。地图比屏幕大 2.6 倍，镜头跟着你滚，球永远在画面里，右下角是战术地图。</div></div>
+        <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></div><div class="hs">E 排斥波（22 能量，冷却 5 秒）；R 修复一格生命（45 能量，冷却 12 秒）。两招共享冷却。前后左右推光球（方向键也行），速度恒定。地图比屏幕大 2.6 倍，镜头跟着你滚，球永远在画面里，右下角是战术地图。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">J</span></div><div class="hs">攻击：自动瞄准最近的敌人，没敌人就按上次朝向打。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">U</span><span class="kbd">I</span><span class="kbd">O</span></div><div class="hs">三种刻印：<b>U</b> 流星斩（朝瞄准方向）· <b>I</b> 引力奇点（身前）· <b>O</b> 天雷。都要能量。</div></div>
         <div class="helpRow helpOnly kbOnly"><div class="hk"><span class="kbd">空格</span></div><div class="hs">冲刺：朝瞄准方向瞬移，带无敌帧。</div></div>
@@ -1584,7 +1584,9 @@ function syncHud() {
   energyFill.style.width = energy + '%';
   energyMark.style.left = mods.pulseCost + '%';
   comboBar.style.width = (comboTimer > 0 ? comboTimer / mods.comboWin * 100 : 0) + '%';
-  while (livesChip.children.length < Math.max(3, lives)) {
+  livesChip.dataset.label = "生命 " + lives + "/5";
+  livesChip.classList.toggle("critical", lives === 1);
+  while (livesChip.children.length < 5) {
     const d = document.createElement('div'); d.className = 'life'; livesChip.appendChild(d);
   }
   [...livesChip.children].forEach((el, i) => el.classList.toggle('off', i >= lives));
@@ -1685,7 +1687,7 @@ function castUlt() {
   }
 }
 function damagePlayer(sx, sy) {
-  lives -= (mods.glass ? 2 : 1); resetCombo();
+  lives = Math.max(0, lives - (mods.glass ? 2 : 1)); resetCombo();
   styleV *= .55;                             // 受创重挫评级
   if (sx !== undefined) dmgDirs.push({ ang: Math.atan2(sy - player.y, sx - player.x), t: 0, life: .6 });
   const dot = livesChip.children[lives];
@@ -2224,6 +2226,27 @@ function recognizeGesture(path) {
     return { type: 'line', x1: pts[0].x, y1: pts[0].y, x2: pts[pts.length-1].x, y2: pts[pts.length-1].y };
   return null;
 }
+let utilityReadyAt = 0;
+function useUtility(repair) {
+  if (elapsed < utilityReadyAt) { banner("战术技能冷却 " + Math.ceil(utilityReadyAt-elapsed) + " 秒"); return; }
+  if (repair && lives >= 5) { banner("生命已满"); return; }
+  if (!spendEnergy(repair ? 45 : 22)) return;
+  utilityReadyAt = elapsed + (repair ? 12 : 5);
+  if (repair) {
+    lives++; syncHud(); sfx.collect(6); banner("应急修复 · 生命 +1");
+  } else {
+    bullets = bullets.filter(b => hyp(b.x-player.x,b.y-player.y)>200);
+    for (const h of hunters) {
+      const dx=h.x-player.x, dy=h.y-player.y, d=hyp(dx,dy);
+      if (d>200 || !tangible(h)) continue;
+      const a=d ? Math.atan2(dy,dx) : aimAng;
+      h.vx=480*Math.cos(a); h.vy=480*Math.sin(a);
+      h.stun=Math.max(h.stun,.65);
+    }
+    sfx.shoot(); banner("排斥波");
+  }
+  rings.push({x:player.x,y:player.y,r:8,maxR:repair ? 65 : 200,alpha:.9,speed:480,color:repair ? "rgba(110,255,180," : "rgba(130,215,255,",warp:false,w:3});
+}
 function castGesture(g) {
   gestureCd = .7 * mods.cdMult;
   const gm = 1 - .08 * (meta.sigil || 0);    // 刻印亲和：耗能减免
@@ -2411,6 +2434,7 @@ function updateMagnets() {
 function startGame() {
   state = 'PLAY';
   score = 0; displayScore = 0; combo = 0; bestCombo = 0; comboTimer = 0;
+  utilityReadyAt = 0;
   lives = 3 + (meta.life || 0);              // 局外：相位续存
   energy = 25 * (meta.start || 0);           // 局外：预充能
   elapsed = 0; spawnTimer = 2.2;
@@ -3126,8 +3150,11 @@ function update(rdt, t) {
         addFloat(p.x, p.y - 8, '+' + p.val + ' 能量', 'rgba(140,255,235,', 13);
         sfx.collect(6);
       } else if (p.kind === 'life') {
+        const wasFull = lives >= 5;
         lives = Math.min(5, lives + 1);
-        addFloat(p.x, p.y - 8, '生命 +1', 'rgba(255,150,190,', 16);
+        const gain = wasFull ? Math.min(15, 100-energy) : 0;
+        energy += gain;
+        addFloat(p.x, p.y - 8, wasFull ? (gain ? '能量 +' + gain : '生命已满') : '生命 +1', 'rgba(255,150,190,', 16);
         burst(p.x, p.y, 18, GLOW.pink, 240);
         sfx.golden();
       } else if (p.kind === 'relic') {
@@ -5154,6 +5181,7 @@ if (KEYBOARD_MODE) {
     if (state !== 'PLAY' || choosing || paused) return;
     const k = e.key.toLowerCase();
     if (k === 'j') { e.preventDefault(); basicAttack(); }
+    else if ((k === 'r' || k === 'e') && !e.repeat) { e.preventDefault(); useUtility(k === 'r'); }
     else if (k === 'u') { e.preventDefault(); kbLine(); }
     else if (k === 'i') { e.preventDefault(); kbCircle(); }
     else if (k === 'o') { e.preventDefault(); kbZig(); }
